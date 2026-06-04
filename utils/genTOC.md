@@ -1,6 +1,6 @@
 ---
 tags: []
-modified_at: 2026-04-14
+modified_at: 2026-06-04
 ---
 ```dataviewjs
 (function () {
@@ -35,10 +35,12 @@ modified_at: 2026-04-14
 
     const pastelColors = ['#FFB5E8', '#B5DEFF', '#C7CEEA', '#FFD4B5', '#B5E8D4', '#FFF5B5', '#E8B5FF', '#B5FFE8'];
 
-    // Style the container
+    // Style the container. Keep this widget left-aligned regardless of theme defaults.
+    dv.container.addClass('gen-toc');
     dv.container.style.lineHeight = "1.4em";
     dv.container.style.margin = "0";
     dv.container.style.padding = "0";
+    dv.container.style.textAlign = "left";
 
     // Build TOC with clickable elements
     const tocContainer = dv.container.createEl('div');
@@ -104,6 +106,22 @@ modified_at: 2026-04-14
             }
         });
     });
+
+    // When embedded, balance rows across columns: 1 column when short, then a
+    // new (equal-height) column per ROWS_PER_COL rows, capped at MAX_COLS.
+    // Embed is detected synchronously (no DOM): when embedded, dv.current() is
+    // genTOC itself while the active file differs. Applying columns now — before
+    // the embed paints — avoids it caching the taller single-column height.
+    const ROWS_PER_COL = 10;   // exceed this many rows → add another column
+    const MAX_COLS = 3;        // never more than this many columns
+    const embedded = !!currentPath && currentPath.includes(helperPath) && !!activePath && activePath !== currentPath;
+    const rowCount = tocContainer.children.length;
+    if (embedded && rowCount > 0) {
+        const cols = Math.min(MAX_COLS, Math.max(1, Math.ceil(rowCount / ROWS_PER_COL)));
+        tocContainer.style.columnCount = String(cols);
+        tocContainer.style.columnGap = '8px';
+        tocContainer.style.columnFill = 'balance';   // distribute rows equally
+    }
 
     if (tocContainer.children.length === 0) {
         dv.paragraph(`📄 No headings at level ${startHeadingLevel} or below found.`);
