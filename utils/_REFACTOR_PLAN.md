@@ -6,7 +6,7 @@ status: approved
 tags:
   - meta/plan
   - snippets
-modified_at: 2026-06-04
+modified_at: 2026-06-05
 ---
 
 # Helper/utils 重构实施计划 (Consolidation)
@@ -213,6 +213,6 @@ module.exports = async (params) => {
 推荐顺序：**0 → 1 → 4 →（0.3 门）→ 2 → 3**。D1、D4 立即见效且不依赖 CustomJS，先做。
 
 ## 前置条件 Preconditions（执行前）
-- [ ] 用户关闭 Obsidian（Claude 才能安全改 `data.json`）。 ✍️ 2026-06-04
-- [ ] CustomJS 已装并启用（Phase 2/3 前）。 ✍️ 2026-06-04
+- [x] 用户关闭 Obsidian（Claude 才能安全改 `data.json`）。 ✍️ 2026-06-04
+- [x] CustomJS 已装并启用（Phase 2/3 前）。 ✍️ 2026-06-04 ✅ 2026-06-05
 - [ ] Google Drive 同步已静默。 ✍️ 2026-06-04

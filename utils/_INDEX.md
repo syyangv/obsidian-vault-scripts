@@ -294,15 +294,15 @@ QuickAdd 在 `data.json` 写死 15 条完整路径；GDrive 冲突改名（`qcTa
 仅差异：过滤条件、属性名（`完成页数`/`看过集数`/`进度`）、section 关键词（`读书`/`看电视`/`课程`）、目标文件、（show 多一步改 FM 集数）。
 > 拷贝漂移证据：`dailyAddBook` 是现代 `const`/箭头，`dailyAddShow`/`dailyUpdateCourse` 是旧 `var`/`function`——克隆后只改了一半。
 
-→ **CustomJS 路线**（已同意）：抽出 `customJS.DailyLog.sectionUpsert(file, section, prop, selected, value)`，三个脚本各自只剩「过滤 + 取值 + 调用」。中等工作量、收益高。
+→ **✅ 已完成（2026-06-05）**：建 `Helper/lib/DailyLog.js`（CustomJS 类，`window.customJS.DailyLog`），抽出 `sectionUpsert(app, file, keyword, prop, selected, value)`。`dailyAddShow/Book/UpdateCourse` 各只剩「过滤 + 取值 + 调用」，共省 ~98 行（123→86 / 108→66 / 92→73）。`sectionUpsert` 有 13 个 Node 单测（add/update/no-section/no-leak/helpers）。book 保留 replace-anywhere + append-to-end 兜底。
 
-### D3 · 重复的微型 helper（同样需 CustomJS 才能 DRY）
+### D3 · 重复的微型 helper（CustomJS）
 - `formatDate(d)` 本地时区 `YYYY-MM-DD` —— `qcTask` 有，`dailyUpdateCourse` 内联重写，`createDailyNoteByDate` 自己切片
 - 今日日记路径 `日记/${y}/${y}-${m}-${d}.md` —— `dailyUpdateCourse`、`createDailyNoteByDate` 各自内联
 - 状态归一 `Array.isArray(x)?x.includes(v):x===v` —— `dailyAddBook`、`dailyUpdateCourse`（`dailyAddShow` 手写 tag 变体）
 - `suggester → active-file guard → parseInt guard` 样板 —— book/show/course/refill
 
-→ CustomJS 路线：统一收进 `customJS.DailyLog`（`formatDate` / `todayDailyPath` / `fmHasValue`）。
+→ **✅ 部分完成（2026-06-05）**：`formatDate` / `todayDailyPath` / `fmHasValue` 已收进 `DailyLog`（被 course 使用）。`createDailyNoteByDate`、`qcTask`、`dailyAddRefill` 暂未迁移（低优先，各自仍内联）。
 
 ### D4 · `.md` widget 重复
 - `monthlyAmount-购物/食物/电费.md` = 3 份近乎相同的 dataviewjs，已被标签页版 `monthlyAmount.md` 取代；其中 2 份 0 引用 → **死重复，可删**（见清理候选）。

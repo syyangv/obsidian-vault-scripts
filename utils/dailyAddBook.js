@@ -57,36 +57,18 @@ module.exports = async (params) => {
         return;
     }
 
-    // Find 读书 section by raw text search — works for both normal headings
-    // and headings inside columns code blocks (which cache.headings won't index)
-    let startLine = -1;
-    for (let i = 0; i < lines.length; i++) {
-        if (/^##\s.*读书/.test(lines[i])) {
-            startLine = i;
-            break;
-        }
-    }
-
-    if (startLine === -1) {
-        // Fallback: append to end of file
-        lines.push(newEntry);
-        await app.vault.modify(file, lines.join("\n"));
-        new Notice(`✅ 已添加: ${selected} - ${pages}页`);
+    const cjs = window.customJS;
+    if (!cjs?.DailyLog) {
+        new Notice("CustomJS DailyLog 未加载");
         return;
     }
 
-    // Section ends at next === (columns separator), closing ```, or ## heading
-    let endLine = lines.length;
-    for (let j = startLine + 1; j < lines.length; j++) {
-        const trimmed = lines[j].trim();
-        if (trimmed === '===' || trimmed === '```' || /^#{1,2} /.test(lines[j])) {
-            endLine = j;
-            break;
-        }
+    // Add via shared helper. (Existing-anywhere replace already handled above.)
+    // Book-specific fallback: append to end of file if there's no 读书 section.
+    const result = await cjs.DailyLog.sectionUpsert(app, file, "读书", "完成页数", selected, pages);
+    if (result === "no-section") {
+        lines.push(newEntry);
+        await app.vault.modify(file, lines.join("\n"));
     }
-
-    // Insert new entry before section end
-    lines.splice(endLine, 0, newEntry);
-    await app.vault.modify(file, lines.join("\n"));
     new Notice(`✅ 已添加: ${selected} - ${pages}页`);
 };

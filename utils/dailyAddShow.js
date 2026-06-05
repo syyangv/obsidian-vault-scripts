@@ -53,60 +53,24 @@ module.exports = async (params) => {
     const episodes = await quickAddApi.inputPrompt(episodePrompt);
     if (!episodes) return;
 
+    const cjs = window.customJS;
+    if (!cjs?.DailyLog) {
+        new Notice("CustomJS DailyLog 未加载");
+        return;
+    }
+
     const file = app.workspace.getActiveFile();
     if (!file) {
         new Notice("请先打开一个笔记");
         return;
     }
 
-    var content = await app.vault.read(file);
-    var newEntry = "- [[" + selected + "]] 看过集数:: " + episodes;
-    var lines = content.split("\n");
-
-    // Find 看电视 section by raw text search — works for both normal headings
-    // and headings inside columns code blocks (which cache.headings won't index)
-    var startLine = -1;
-    for (var i = 0; i < lines.length; i++) {
-        if (/^##\s.*看电视/.test(lines[i])) {
-            startLine = i;
-            break;
-        }
-    }
-
-    if (startLine === -1) {
+    const result = await cjs.DailyLog.sectionUpsert(app, file, "看电视", "看过集数", selected, episodes);
+    if (result === "no-section") {
         new Notice("没有找到看电视标题");
         return;
     }
-
-    // Section ends at next === (columns separator), closing ```, or ## heading
-    var endLine = lines.length;
-    for (var j = startLine + 1; j < lines.length; j++) {
-        var trimmed = lines[j].trim();
-        if (trimmed === '===' || trimmed === '```' || /^#{1,2} /.test(lines[j])) {
-            endLine = j;
-            break;
-        }
-    }
-
-    // Check if this show already exists in this section
-    var existingLineIndex = -1;
-    var searchStr = "- [[" + selected + "]] 看过集数:: ";
-    for (var k = startLine + 1; k < endLine; k++) {
-        if (lines[k].indexOf(searchStr) === 0) {
-            existingLineIndex = k;
-            break;
-        }
-    }
-
-    if (existingLineIndex !== -1) {
-        lines[existingLineIndex] = newEntry;
-        await app.vault.modify(file, lines.join("\n"));
-        new Notice("已更新: " + selected + " - " + episodes + "集");
-    } else {
-        lines.splice(endLine, 0, newEntry);
-        await app.vault.modify(file, lines.join("\n"));
-        new Notice("已添加: " + selected + " - " + episodes + "集");
-    }
+    new Notice((result === "updated" ? "已更新: " : "已添加: ") + selected + " - " + episodes + "集");
 
     // If new episode count > 更新集数, bump 更新集数 on the show file
     const newEpNum = parseInt(episodes);

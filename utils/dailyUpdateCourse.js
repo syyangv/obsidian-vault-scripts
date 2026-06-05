@@ -45,64 +45,22 @@ module.exports = async (params) => {
     });
 
     // Log to today's daily note under the 课程 section
-    const today = new Date();
-    const yyyy = today.getFullYear();
-    const mm = String(today.getMonth() + 1).padStart(2, '0');
-    const dd = String(today.getDate()).padStart(2, '0');
-    const dailyPath = `日记/${yyyy}/${yyyy}-${mm}-${dd}.md`;
-    const dailyFile = app.vault.getAbstractFileByPath(dailyPath);
+    const cjs = window.customJS;
+    if (!cjs?.DailyLog) {
+        new Notice("✅ 已更新课程进度，但 CustomJS DailyLog 未加载");
+        return;
+    }
 
+    const dailyFile = app.vault.getAbstractFileByPath(cjs.DailyLog.todayDailyPath());
     if (!dailyFile) {
         new Notice("✅ 已更新课程进度，但找不到今日日记");
         return;
     }
 
-    var content = await app.vault.read(dailyFile);
-    var newEntry = "- [[" + selected + "]] 进度:: " + progressNum;
-    var lines = content.split("\n");
-
-    // Find 课程 section by raw text search — works for both normal headings
-    // and headings inside columns code blocks (which cache.headings won't index)
-    var startLine = -1;
-    for (var i = 0; i < lines.length; i++) {
-        if (/^##\s.*课程/.test(lines[i])) {
-            startLine = i;
-            break;
-        }
-    }
-
-    if (startLine === -1) {
+    const result = await cjs.DailyLog.sectionUpsert(app, dailyFile, "课程", "进度", selected, progressNum);
+    if (result === "no-section") {
         new Notice("✅ 已更新课程进度，但日记中没有找到课程标题");
         return;
     }
-
-    // Section ends at next === (columns separator), closing ```, or ## heading
-    var endLine = lines.length;
-    for (var j = startLine + 1; j < lines.length; j++) {
-        var trimmed = lines[j].trim();
-        if (trimmed === '===' || trimmed === '```' || /^#{1,2} /.test(lines[j])) {
-            endLine = j;
-            break;
-        }
-    }
-
-    // Check if entry already exists in this section
-    var searchStr = "- [[" + selected + "]] 进度:: ";
-    var existingLineIndex = -1;
-    for (var k = startLine + 1; k < endLine; k++) {
-        if (lines[k].indexOf(searchStr) === 0) {
-            existingLineIndex = k;
-            break;
-        }
-    }
-
-    if (existingLineIndex !== -1) {
-        lines[existingLineIndex] = newEntry;
-        await app.vault.modify(dailyFile, lines.join("\n"));
-        new Notice("✅ 已更新: " + selected + " 进度 → " + progressNum);
-    } else {
-        lines.splice(endLine, 0, newEntry);
-        await app.vault.modify(dailyFile, lines.join("\n"));
-        new Notice("✅ 已记录: " + selected + " 进度 → " + progressNum);
-    }
+    new Notice((result === "updated" ? "✅ 已更新: " : "✅ 已记录: ") + selected + " 进度 → " + progressNum);
 };
