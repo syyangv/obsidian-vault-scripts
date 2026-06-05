@@ -1,5 +1,5 @@
 ---
-modified_at: 2026-05-10
+modified_at: 2026-06-05
 ---
 ```dataviewjs
 // =====================================================
@@ -97,7 +97,7 @@ const GROUPS = [
 const INTERVALS = {
     '吸尘': 7,  '拖地': 21,
     '换床单': 30, '换被套': 30,
-    '洗衣服': 10,
+    '洗衣服': 7,
     '整理/叠衣服/上衣': 14, '整理/叠衣服/下装': 14, '整理/叠衣服/毛巾床品': 14,
     '整理/卖Mercari': 90,
     '刷马桶': 21, '洗手台': 45, '浴室地面': 90, '替换/牙刷刷头': 90,
@@ -118,6 +118,22 @@ const toWk = d => {
     return `${m.getFullYear()}-${String(m.getMonth()+1).padStart(2,'0')}-${String(m.getDate()).padStart(2,'0')}`;
 };
 const addDays = (d, n) => { const r = new Date(d); r.setDate(r.getDate() + n); return r; };
+const fmtDate = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+const parseLocalDate = s => {
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(s ?? ''));
+    return m ? new Date(+m[1], +m[2] - 1, +m[3]) : new Date(s);
+};
+const daysBetween = (from, to) => {
+    const a = new Date(from); a.setHours(0,0,0,0);
+    const b = new Date(to);   b.setHours(0,0,0,0);
+    return Math.round((b - a) / 86400000);
+};
+const fieldValues = vals => {
+    if (!vals) return [];
+    if (Array.isArray(vals)) return vals;
+    if (typeof vals.array === 'function') return vals.array();
+    return [vals];
+};
 
 // ──────────────────── BUILD WEEK LIST (full year) ───
 const today   = new Date();
@@ -156,11 +172,10 @@ for (const page of pages) {
     try {
         const fn = page?.file?.name;
         if (!fn) continue;
-        const pd = new Date(fn);
+        const pd = parseLocalDate(fn);
         if (isNaN(pd.getTime()) || pd < scanStart || pd > today) continue;
         for (const task of allTasks) {
-            const vals = page[task.fm];
-            if (!vals || !Array.isArray(vals)) continue;
+            const vals = fieldValues(page[task.fm]);
             if (!vals.some(v => task.fmVals.includes(v))) continue;
             if (!lastDoneDate[task.key] || pd > lastDoneDate[task.key]) {
                 lastDoneDate[task.key] = new Date(pd);
@@ -181,9 +196,11 @@ for (const task of allTasks) {
     const isOverdue = nextDate <= today;
     nextDue[task.key] = {
         wk:          toWk(nextDate),
+        lastDate:     last ? fmtDate(last) : null,
+        nextDate:     fmtDate(nextDate),
         isOverdue,
-        daysOverdue: isOverdue ? Math.floor((today - nextDate) / 86400000) : 0,
-        daysUntil:   !isOverdue ? Math.ceil((nextDate - today) / 86400000) : 0,
+        daysOverdue: isOverdue ? daysBetween(nextDate, today) : 0,
+        daysUntil:   !isOverdue ? daysBetween(today, nextDate) : 0,
         neverDone
     };
 }
@@ -204,29 +221,12 @@ for (const group of GROUPS) {
 }
 yPos -= GRP_GAP;
 
-const SVG_W = LABEL_W + WEEKS * STEP - GAP + 30;
 const SVG_H = yPos + 8;
+const GRID_W = WEEKS * STEP - GAP + 30;
 
-// Unique gradient ID prefix to avoid conflicts if widget appears twice
 const pfx = 'hw' + Math.random().toString(36).slice(2, 7);
 
-// ──────────────────── RENDER SVG ────────────────────
-const p = [];
-// Use viewBox so the chart scales to 100% container width with no scrollbar
-p.push(`<svg viewBox="0 0 ${SVG_W} ${SVG_H}" width="100%" xmlns="http://www.w3.org/2000/svg" style="font-family:var(--font-text);display:block;">`);
-
-// Gradient defs for squircle icons
-p.push(`<defs>`);
-GROUPS.forEach((g, i) => {
-    p.push(`<linearGradient id="${pfx}g${i}" x1="0.2" y1="0" x2="0.8" y2="1">
-        <stop offset="0%"   stop-color="${g.gradLight}"/>
-        <stop offset="100%" stop-color="${g.gradDark}"/>
-    </linearGradient>`);
-});
-p.push(`</defs>`);
-
-// Month labels (centered over each month's weeks) + vertical separators
-// First pass: collect week index ranges per month
+// Pre-compute month ranges & current week index
 const monthRanges = [];
 for (let wi = 0; wi < weeks.length; wi++) {
     const m = weeks[wi].mon.getMonth();
@@ -236,81 +236,82 @@ for (let wi = 0; wi < weeks.length; wi++) {
         monthRanges[monthRanges.length - 1].lastWi = wi;
     }
 }
-
-// Vertical separators at month boundaries, extending from y=15 to bottom
-for (let i = 1; i < monthRanges.length; i++) {
-    const x = LABEL_W + monthRanges[i].firstWi * STEP - 2;
-    p.push(`<line x1="${x}" y1="15" x2="${x}" y2="${SVG_H - 4}" stroke="var(--background-modifier-border)" stroke-width="1" opacity="0.6"/>`);
-}
-
-// Centered month labels
-for (const { m, firstWi, lastWi } of monthRanges) {
-    const x1 = LABEL_W + firstWi * STEP;
-    const x2 = LABEL_W + lastWi * STEP + CELL;
-    p.push(`<text x="${(x1 + x2) / 2}" y="13" font-size="10" fill="var(--text-muted)" font-weight="500" text-anchor="middle">${MONTH_NAMES[m]}</text>`);
-}
-
-// Subtle axis line
-p.push(`<line x1="${LABEL_W}" y1="${TOP_PAD - 5}" x2="${SVG_W - 6}" y2="${TOP_PAD - 5}" stroke="var(--background-modifier-border)" stroke-width="0.8"/>`);
-
-// Current-week vertical highlight
 const cwi = weeks.findIndex(w => w.key === todayWk);
-if (cwi >= 0) {
-    const cx = LABEL_W + cwi * STEP;
-    p.push(`<rect x="${cx}" y="${TOP_PAD - 5}" width="${CELL}" height="${SVG_H - TOP_PAD + 5}" fill="rgba(255,255,255,0.04)" rx="1"/>`);
-    p.push(`<text x="${cx + CELL/2}" y="${TOP_PAD - 8}" font-size="8" fill="var(--text-muted)" text-anchor="middle">今</text>`);
-}
 
-// Room groups: colored bar + squircle icon + label
+// ──────────────────── RENDER LABELS SVG ────────────
+const lp = [];
+lp.push(`<svg viewBox="0 0 ${LABEL_W} ${SVG_H}" width="${LABEL_W}" height="${SVG_H}" xmlns="http://www.w3.org/2000/svg" style="font-family:var(--font-text);display:block;">`);
+lp.push(`<defs>`);
+GROUPS.forEach((g, i) => {
+    lp.push(`<linearGradient id="${pfx}L${i}" x1="0.2" y1="0" x2="0.8" y2="1">
+        <stop offset="0%" stop-color="${g.gradLight}"/>
+        <stop offset="100%" stop-color="${g.gradDark}"/>
+    </linearGradient>`);
+});
+lp.push(`</defs>`);
+
 GROUPS.forEach((group, gi) => {
     const { y, h } = bands[gi];
-
-    // Tall gradient pill spanning all rows in this group
-    p.push(`<rect x="1" y="${y - 1}" width="${ICON_W}" height="${h + 2}" rx="5" fill="url(#${pfx}g${gi})"
-                  style="filter:drop-shadow(0 2px 5px rgba(0,0,0,0.35))"/>`);
-    // Gel highlight — top gloss strip
-    p.push(`<rect x="2.5" y="${y}" width="${ICON_W - 3}" height="7" rx="3.5" fill="rgba(255,255,255,0.28)"/>`);
-    // Icon paths scaled + centered inside the pill
-    // Icons are drawn in a 16×16 space; scale to fill ICON_W with 4px padding each side
-    const iconCY  = y + Math.round(h / 2);
-    const iSize   = ICON_W - 8;           // rendered icon size (px)
-    const iScale  = (iSize / 16).toFixed(3);
-    const iLeft   = 1 + 4;                // x: start of pill + padding
-    const iTop    = iconCY - iSize / 2;   // y: vertically centered
-    p.push(`<g transform="translate(${iLeft},${iTop}) scale(${iScale})">${group.icon}</g>`);
-
-    // Room label — horizontal, larger font, centered in band
-    p.push(`<text x="${1 + ICON_W + 7}" y="${iconCY + 5}" font-size="13" fill="${group.color}" font-weight="600">${group.room}</text>`);
+    lp.push(`<rect x="1" y="${y - 1}" width="${ICON_W}" height="${h + 2}" rx="5" fill="url(#${pfx}L${gi})" style="filter:drop-shadow(0 2px 5px rgba(0,0,0,0.35))"/>`);
+    lp.push(`<rect x="2.5" y="${y}" width="${ICON_W - 3}" height="7" rx="3.5" fill="rgba(255,255,255,0.28)"/>`);
+    const iconCY = y + Math.round(h / 2);
+    const iSize = ICON_W - 8;
+    const iScale = (iSize / 16).toFixed(3);
+    const iLeft = 1 + 4;
+    const iTop = iconCY - iSize / 2;
+    lp.push(`<g transform="translate(${iLeft},${iTop}) scale(${iScale})">${group.icon}</g>`);
+    lp.push(`<text x="${1 + ICON_W + 7}" y="${iconCY + 5}" font-size="13" fill="${group.color}" font-weight="600">${group.room}</text>`);
 });
 
-// Task rows
 for (const { y, task, group } of rows) {
     const ndi = nextDue[task.key];
     const labelOverdue = ndi?.isOverdue && !done[task.key].has(todayWk);
-
-    // Red background pill — starts after the room name (pill + label + estimated char width)
     const redX = 1 + ICON_W + 7 + group.room.length * 13 + 6;
     if (labelOverdue) {
-        p.push(`<rect x="${redX}" y="${y}" width="${LABEL_W - redX - 6}" height="${CELL}" fill="rgba(239,68,68,0.18)" rx="3"/>`);
+        lp.push(`<rect x="${redX}" y="${y}" width="${LABEL_W - redX - 6}" height="${CELL}" fill="rgba(239,68,68,0.18)" rx="3"/>`);
     }
-    // Task label: centered inside red pill when overdue, right-aligned otherwise
-    const labelX  = labelOverdue ? (redX + LABEL_W - 6) / 2 : LABEL_W - 6;
+    const labelX = labelOverdue ? (redX + LABEL_W - 6) / 2 : LABEL_W - 6;
     const labelAnchor = labelOverdue ? 'middle' : 'end';
-    p.push(`<text x="${labelX}" y="${y + CELL - 3}" font-size="11" fill="var(--text-muted)" text-anchor="${labelAnchor}">${task.label}</text>`);
+    lp.push(`<text x="${labelX}" y="${y + CELL - 3}" font-size="11" fill="var(--text-muted)" text-anchor="${labelAnchor}">${task.label}</text>`);
+}
+lp.push(`</svg>`);
 
-    // Week cells
+// ──────────────────── RENDER GRID SVG ──────────────
+const gp = [];
+gp.push(`<svg viewBox="0 0 ${GRID_W} ${SVG_H}" width="${GRID_W}" height="${SVG_H}" xmlns="http://www.w3.org/2000/svg" style="font-family:var(--font-text);display:block;">`);
+
+for (let i = 1; i < monthRanges.length; i++) {
+    const x = monthRanges[i].firstWi * STEP - 2;
+    gp.push(`<line x1="${x}" y1="15" x2="${x}" y2="${SVG_H - 4}" stroke="var(--background-modifier-border)" stroke-width="1" opacity="0.6"/>`);
+}
+
+for (const { m, firstWi, lastWi } of monthRanges) {
+    const x1 = firstWi * STEP;
+    const x2 = lastWi * STEP + CELL;
+    gp.push(`<text x="${(x1 + x2) / 2}" y="13" font-size="10" fill="var(--text-muted)" font-weight="500" text-anchor="middle">${MONTH_NAMES[m]}</text>`);
+}
+
+gp.push(`<line x1="0" y1="${TOP_PAD - 5}" x2="${GRID_W - 6}" y2="${TOP_PAD - 5}" stroke="var(--background-modifier-border)" stroke-width="0.8"/>`);
+
+if (cwi >= 0) {
+    const cx = cwi * STEP;
+    gp.push(`<rect x="${cx}" y="${TOP_PAD - 5}" width="${CELL}" height="${SVG_H - TOP_PAD + 5}" fill="rgba(255,255,255,0.04)" rx="1"/>`);
+    gp.push(`<text x="${cx + CELL/2}" y="${TOP_PAD - 8}" font-size="8" fill="var(--text-muted)" text-anchor="middle">今</text>`);
+}
+
+for (const { y, task, group } of rows) {
+    const ndi = nextDue[task.key];
     for (let wi = 0; wi < weeks.length; wi++) {
         const { key, mon, sun } = weeks[wi];
-        const x         = LABEL_W + wi * STEP;
+        const x         = wi * STEP;
         const isDone    = done[task.key].has(key);
         const isCurrent = key === todayWk;
         const isFuture  = mon > today;
 
         const isOverdueCell   = ndi?.isOverdue  && isCurrent && !isDone;
-        const isDueThisWeek   = ndi && !ndi.isOverdue && key === ndi.wk && isCurrent;  // due this week, not yet done
-        const isUpcomingCell  = ndi && !ndi.isOverdue && key === ndi.wk && !isCurrent; // due in a future week
+        const isDueThisWeek   = ndi && !ndi.isOverdue && key === ndi.wk && isCurrent;
+        const isUpcomingCell  = ndi && !ndi.isOverdue && key === ndi.wk && !isCurrent;
 
-        // Current week: done → room color, overdue → red, due-this-week → room color, otherwise → neutral grey
         const CURRENT_WK_STROKE = '#6b7280';
         let fill, stroke, sw, dash;
         if (isDone) {
@@ -330,31 +331,141 @@ for (const { y, task, group } of rows) {
         }
 
         let tip;
-        if (isDone)            tip = '✅ 完成';
-        else if (isOverdueCell)   tip = ndi.neverDone ? '⚠️ 从未记录' : `⚠️ 逾期 ${ndi.daysOverdue} 天`;
-        else if (isUpcomingCell)  tip = `📅 预计 (+${ndi.daysUntil} 天)`;
-        else if (isFuture)     tip = '—';
-        else                   tip = '○ 未完成';
+        if (isDone)              tip = ndi?.lastDate ? `✅ 完成；上次 ${ndi.lastDate}；下次预计 ${ndi.nextDate}` : '✅ 完成';
+        else if (isOverdueCell)  tip = ndi.neverDone ? '⚠️ 从未记录' : `⚠️ 逾期 ${ndi.daysOverdue} 天；上次 ${ndi.lastDate}；应在 ${ndi.nextDate}`;
+        else if (isDueThisWeek)  tip = `📅 本周预计 ${ndi.nextDate} (+${ndi.daysUntil} 天)；上次 ${ndi.lastDate}`;
+        else if (isUpcomingCell) tip = `📅 预计 ${ndi.nextDate} (+${ndi.daysUntil} 天)；上次 ${ndi.lastDate}`;
+        else if (isFuture)       tip = '—';
+        else                     tip = ndi?.lastDate ? `○ 未完成；上次 ${ndi.lastDate}；下次预计 ${ndi.nextDate}` : '○ 未完成';
 
-        p.push(`<rect x="${x}" y="${y}" width="${CELL}" height="${CELL}" rx="3" fill="${fill}" stroke="${stroke}" stroke-width="${sw}" ${dash}>`);
-        p.push(`<title>${task.label}  ${mon.getMonth()+1}/${mon.getDate()}–${sun.getMonth()+1}/${sun.getDate()}\n${tip}</title>`);
-        p.push(`</rect>`);
+        gp.push(`<rect x="${x}" y="${y}" width="${CELL}" height="${CELL}" rx="3" fill="${fill}" stroke="${stroke}" stroke-width="${sw}" ${dash}>`);
+        gp.push(`<title>${task.label}  ${mon.getMonth()+1}/${mon.getDate()}–${sun.getMonth()+1}/${sun.getDate()}\n${tip}</title>`);
+        gp.push(`</rect>`);
 
         if (isDone) {
-            p.push(`<circle cx="${x + CELL/2}" cy="${y + CELL/2}" r="2.5" fill="rgba(255,255,255,0.45)" pointer-events="none"/>`);
+            gp.push(`<circle cx="${x + CELL/2}" cy="${y + CELL/2}" r="2.5" fill="rgba(255,255,255,0.45)" pointer-events="none"/>`);
         } else if (isOverdueCell) {
-            // Days overdue shown inside the red cell: ∞ if never done, Xm if 100+ days, else day count
             const label  = ndi.neverDone ? '∞' : ndi.daysOverdue >= 100 ? `${Math.floor(ndi.daysOverdue/30)}m` : `${ndi.daysOverdue}`;
             const fsize  = ndi.neverDone ? 20 : 10;
-            p.push(`<text x="${x + CELL/2}" y="${y + CELL/2}" font-size="${fsize}" font-weight="700" fill="#ef4444" text-anchor="middle" dominant-baseline="central" pointer-events="none">${label}</text>`);
+            gp.push(`<text x="${x + CELL/2}" y="${y + CELL/2}" font-size="${fsize}" font-weight="700" fill="#ef4444" text-anchor="middle" dominant-baseline="central" pointer-events="none">${label}</text>`);
         }
     }
 }
+gp.push(`</svg>`);
 
-p.push(`</svg>`);
+// ──────────────────── BUILD DOM ────────────────────
+const wrapper = dv.container.createEl('div');
 
-const el = dv.container.createEl('div');
-el.innerHTML = p.join('');
+const bar = wrapper.createEl('div');
+bar.style.cssText = 'display:flex;gap:5px;margin-bottom:8px;flex-wrap:wrap;align-items:center;';
+
+const btnStyle = `padding:2px 10px;border-radius:4px;border:1px solid var(--background-modifier-border);
+    background:var(--background-secondary);color:var(--text-muted);cursor:pointer;font-size:11px;line-height:1.6;`;
+const btnActiveStyle = `padding:2px 10px;border-radius:4px;border:1px solid var(--interactive-accent);
+    background:var(--interactive-accent);color:white;cursor:pointer;font-size:11px;line-height:1.6;`;
+
+const allBtns = [];
+const mkBtn = (label, fn) => {
+    const b = bar.createEl('button');
+    b.textContent = label;
+    b.style.cssText = btnStyle;
+    b.addEventListener('click', () => {
+        allBtns.forEach(x => x.style.cssText = btnStyle);
+        b.style.cssText = btnActiveStyle;
+        fn();
+    });
+    allBtns.push(b);
+    return b;
+};
+
+const scrollBox = wrapper.createEl('div');
+scrollBox.style.cssText = 'overflow:auto;max-height:600px;border-radius:6px;';
+
+const flexRow = scrollBox.createEl('div');
+flexRow.style.cssText = 'display:flex;width:fit-content;align-items:flex-start;';
+
+const labelPanel = flexRow.createEl('div');
+labelPanel.style.cssText = 'position:sticky;left:0;z-index:2;flex-shrink:0;background:var(--background-primary);';
+labelPanel.innerHTML = lp.join('');
+
+const gridPanel = flexRow.createEl('div');
+gridPanel.innerHTML = gp.join('');
+
+const gridSvg = gridPanel.querySelector('svg');
+const labelSvg = labelPanel.querySelector('svg');
+
+let zoomLevel = 1;
+const applyZoom = (z, scrollTargetX) => {
+    zoomLevel = Math.max(0.5, Math.min(4, z));
+    const gw = GRID_W * zoomLevel;
+    const gh = SVG_H * zoomLevel;
+    gridSvg.setAttribute('width', gw);
+    gridSvg.setAttribute('height', gh);
+    labelSvg.setAttribute('width', LABEL_W * zoomLevel);
+    labelSvg.setAttribute('height', gh);
+    if (scrollTargetX !== undefined) {
+        scrollBox.scrollLeft = scrollTargetX * zoomLevel;
+    }
+};
+
+mkBtn('−', () => {
+    const cx = scrollBox.scrollLeft + scrollBox.clientWidth / 2;
+    const ratio = cx / (GRID_W * zoomLevel);
+    applyZoom(zoomLevel * 0.75);
+    scrollBox.scrollLeft = ratio * GRID_W * zoomLevel - scrollBox.clientWidth / 2;
+});
+mkBtn('+', () => {
+    const cx = scrollBox.scrollLeft + scrollBox.clientWidth / 2;
+    const ratio = cx / (GRID_W * zoomLevel);
+    applyZoom(zoomLevel * 1.33);
+    scrollBox.scrollLeft = ratio * GRID_W * zoomLevel - scrollBox.clientWidth / 2;
+});
+
+const sep = bar.createEl('span');
+sep.style.cssText = 'width:1px;height:16px;background:var(--background-modifier-border);margin:0 2px;';
+
+const fitBtn = mkBtn('全年', () => applyZoom(1, 0));
+
+const quarters = [['Q1',0,13],['Q2',13,26],['Q3',26,39],['Q4',39,WEEKS]];
+for (const [label, s, e] of quarters) {
+    mkBtn(label, () => {
+        const containerW = (scrollBox.clientWidth || 600) - LABEL_W * zoomLevel;
+        const rangeW = (e - s) * STEP;
+        const z = Math.max(0.5, Math.min(4, containerW / rangeW));
+        applyZoom(z, s * STEP);
+    });
+}
+
+mkBtn('近3月', () => {
+    const ago = addDays(today, -90);
+    const startIdx = Math.max(0, weeks.findIndex(w => w.mon >= ago));
+    const containerW = (scrollBox.clientWidth || 600) - LABEL_W * zoomLevel;
+    const rangeW = (WEEKS - startIdx) * STEP + 20;
+    const z = Math.max(0.5, Math.min(4, containerW / rangeW));
+    applyZoom(z, startIdx * STEP);
+});
+
+scrollBox.addEventListener('wheel', (e) => {
+    if (!e.ctrlKey && !e.metaKey) return;
+    e.preventDefault();
+    const rect = scrollBox.getBoundingClientRect();
+    const labelW = LABEL_W * zoomLevel;
+    const mouseGridX = e.clientX - rect.left - labelW + scrollBox.scrollLeft;
+    const ratio = mouseGridX / (GRID_W * zoomLevel);
+    const factor = e.deltaY > 0 ? 0.85 : 1.18;
+    const newZoom = Math.max(0.5, Math.min(4, zoomLevel * factor));
+    applyZoom(newZoom);
+    scrollBox.scrollLeft = ratio * GRID_W * zoomLevel - (e.clientX - rect.left - LABEL_W * zoomLevel);
+}, { passive: false });
+
+requestAnimationFrame(() => {
+    if (cwi >= 0) {
+        const targetX = cwi * STEP * zoomLevel;
+        const visible = scrollBox.clientWidth - LABEL_W * zoomLevel;
+        scrollBox.scrollLeft = Math.max(0, targetX - visible / 2);
+    }
+    fitBtn.style.cssText = btnActiveStyle;
+});
 
 })();
 ```
