@@ -5,7 +5,7 @@ created: 2026-06-04
 tags:
   - meta/index
   - snippets
-modified_at: 2026-06-04
+modified_at: 2026-06-05
 ---
 
 # Helper/utils — Snippet & Script Index
@@ -75,7 +75,16 @@ modified_at: 2026-06-04
 | 文件 | 类型 | 用途 | 依赖（插件 · 数据源） | 引用 |
 |---|---|---|---|---|
 | `monthlyCalendarGrid.md` | md-embed | 月历网格 | DV · `日记/` (DIARY_FOLDER) | 8 |
-| `plumbobCalendarGrid.md` | md-embed | Plumbob 主题月历 | DV · `日记/` + `Helper/utils/holidays/` | 2 |
+| `plumbobCalendarGrid.md` | md-embed | Plumbob 主题月历 | DV · `日记/` + `Helper/utils/holidays/` + Weather API | 2 |
+
+> **plumbobCalendarGrid 天气图标架构** (2026-06-05):
+> - 数据源: `pwa-wardrobe.fly.dev/api/weather/forecast` (Tomorrow.io 代理), localStorage 缓存 8h (`plumbob_weather_v7`)
+> - 图标: 12 个 Sims 4 风格 22×22 PNG (base64), 存于 `WX_IMG` 对象, 通过 `WEATHER_CODES` 映射 Tomorrow.io code → base64
+> - 渲染: `<div class="pc-weather">` + `background-image:url('data:image/png;base64,...')`, 带 `rgba(80,120,160,0.45)` 底色确保 light mode 可见
+> - 图标列表: sunny, mostly_clear, partly_cloudy, mostly_cloudy, cloudy, fog, light_rain, rain, snow, heavy_snow, freezing, thunderstorm
+> - 生成脚本: `/tmp/gen_sims4_weather_v3.py` (v4 透明背景版), cloudy 单独调整为深灰后云+白前云
+> - ⚠️ 修改 `WX_IMG` base64 时用 `(?<![a-z_])key:'...'` 正则避免子串匹配 (如 `cloudy` 匹配到 `mostly_cloudy`)
+> - ⚠️ 修改图标后必须 bump cache key (如 `_v7` → `_v8`), 否则旧缓存会复用损坏数据
 | `houseworkRoomHeatmap.md` | md-embed | 家务按房间热力图 | DV · `日记/` | 1 |
 | `houseworkWeeklyGrid.md` | md-embed | 家务周网格 | DV · `日记/{年}` | 1 |
 | `tickGrid.js` | js-templater | `tp.user.tickGrid` 打勾网格 | Templater · — | 模板内 |
