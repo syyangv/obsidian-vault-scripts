@@ -16,7 +16,7 @@ modified_at: 2026-06-05
 > - **`.js` Templater 用户脚本**：`user_scripts_folder = Helper/utils`，按文件名暴露为 `tp.user.xxx`，递归子文件夹安全，但改名会断 `tp.user` 调用。
 > - **Google Drive 冲突改名**（`qcTask 1.js`）会同时打断以上所有引用——批量改动后请检查重复文件。
 
-**文件统计**：52 个 `.md` 嵌入片段 · 19 个 `.js` 脚本 · `holidays/` 子目录 · 3 个 `.bak`（可清理）
+**文件统计**：50 个 `.md` 嵌入片段 · 18 个 `.js` 脚本（+ `Helper/lib/DailyLog.js` CustomJS 共享类）· `holidays/` 子目录 · 3 个 `.bak`（可清理）
 
 **列说明**
 - **类型**：`md-embed`=dataviewjs 嵌入片段 · `js-quickadd`=QuickAdd 脚本 · `js-templater`=Templater 用户函数 · `js-metabind`=Meta Bind/JS Engine 动作 · `js-util`=纯 vault API 脚本
@@ -94,9 +94,7 @@ modified_at: 2026-06-05
 | 文件 | 类型 | 用途 | 依赖（插件 · 数据源） | 引用 |
 |---|---|---|---|---|
 | `monthlyAmount.md` | md-embed | 购物/食物/电费同比（标签页）| DV · `年度记录/` + `Logistics/购物/转运记录/` | 2 |
-| `monthlyAmount-购物.md` | md-embed | 购物金额同比 | DV · `年度记录/` | — |
-| `monthlyAmount-食物.md` | md-embed | 食物金额同比 | DV · `年度记录/` | 1 |
-| `monthlyAmount-电费.md` | md-embed | 电费同比 | DV · `年度记录/` | — |
+| `monthlyAmount-食物.md` | md-embed | 食物金额同比（`Recipes.md` 在用）| DV · `年度记录/` | 1 |
 | `monthlyStats.md` | md-embed | 月度统计 | DV · `日记/{年}` | 10 |
 | `转运月花费.md` | md-embed | 转运月花费 | DV · 转运记录文件夹 | — |
 | `monthlyAmountEdit.js` | js-metabind | 编辑月度金额 | JS Engine · `年度记录/` | data.json |
@@ -177,7 +175,7 @@ modified_at: 2026-06-05
 
 ## ⚠️ 待确认 / 清理候选
 
-**无引用（确认后再决定去留）**：`onThisDay.md`、`tvSync.md`、`courseProgress.md`、`todayLink.md`、`weeklyLink.md`、`转运月花费.md`、`monthlyAmount-购物.md`、`monthlyAmount-电费.md`
+**无引用（确认后再决定去留）**：`onThisDay.md`、`tvSync.md`、`courseProgress.md`、`todayLink.md`、`weeklyLink.md`、`转运月花费.md` ~~`monthlyAmount-购物.md`、`monthlyAmount-电费.md`~~（已删 2026-06-05）
 > 这些未找到 `![[]]`、`[[]]` 或 `dv.view()` 引用，但可能由动态拼接路径加载，**删除前请在 Obsidian 内全局搜索文件名确认**。
 
 **`.bak` 备份（可直接删，或交给 `cleanupBakFiles.js`）**：`1-Pantry-20260604.bak`、`2-Pantry-20260604.bak`、`Pantry-20260604.bak`
@@ -305,7 +303,7 @@ QuickAdd 在 `data.json` 写死 15 条完整路径；GDrive 冲突改名（`qcTa
 → **✅ 部分完成（2026-06-05）**：`formatDate` / `todayDailyPath` / `fmHasValue` 已收进 `DailyLog`（被 course 使用）。`createDailyNoteByDate`、`qcTask`、`dailyAddRefill` 暂未迁移（低优先，各自仍内联）。
 
 ### D4 · `.md` widget 重复
-- `monthlyAmount-购物/食物/电费.md` = 3 份近乎相同的 dataviewjs，已被标签页版 `monthlyAmount.md` 取代；其中 2 份 0 引用 → **死重复，可删**（见清理候选）。
+- **✅ 已完成（2026-06-05）**：删除 0 引用的 `monthlyAmount-购物.md`、`monthlyAmount-电费.md`（被标签页版 `monthlyAmount.md` 取代）。保留 `monthlyAmount-食物.md`（`Recipes.md` 在用）。
 - `habitTracker*.md`（11 个）共享一套 CONFIG 驱动的 dataviewjs 骨架，仅 config 不同。**有意为之**的每习惯副本（各自被独立模板嵌入）。可参数化成单一 `dv.view('habitTracker', {habit})`，但嵌在 11 处 → 重构大、链路风险高、ROI 低，**建议保留**。
 
 ### 推荐顺序（CustomJS 已批准）
