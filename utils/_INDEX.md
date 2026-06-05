@@ -292,7 +292,8 @@ QuickAdd 在 `data.json` 写死 15 条完整路径；GDrive 冲突改名（`qcTa
 仅差异：过滤条件、属性名（`完成页数`/`看过集数`/`进度`）、section 关键词（`读书`/`看电视`/`课程`）、目标文件、（show 多一步改 FM 集数）。
 > 拷贝漂移证据：`dailyAddBook` 是现代 `const`/箭头，`dailyAddShow`/`dailyUpdateCourse` 是旧 `var`/`function`——克隆后只改了一半。
 
-→ **✅ 已完成（2026-06-05）**：建 `Helper/lib/DailyLog.js`（CustomJS 类，`window.customJS.DailyLog`），抽出 `sectionUpsert(app, file, keyword, prop, selected, value)`。`dailyAddShow/Book/UpdateCourse` 各只剩「过滤 + 取值 + 调用」，共省 ~98 行（123→86 / 108→66 / 92→73）。`sectionUpsert` 有 13 个 Node 单测（add/update/no-section/no-leak/helpers）。book 保留 replace-anywhere + append-to-end 兜底。
+→ **✅ 已完成（2026-06-05）**：建 `Helper/lib/DailyLog.js`（CustomJS 类，`window.customJS.DailyLog`），抽出 `sectionUpsert(app, file, keyword, prop, selected, value)`。`dailyAddShow/Book/UpdateCourse` 各只剩「过滤 + 取值 + 调用」，共省 ~98 行。Node 单测覆盖 `sectionUpsert` + `resolveDailyTarget`。
+> **结构统一（2026-06-05）**：三脚本目标笔记解析统一为 `DailyLog.resolveDailyTarget(app)` = **当前笔记若是日记（`日记/…/YYYY-MM-DD`）则用之，否则今日日记**。book 归一化（去掉 replace-anywhere + append-to-end 特例），现与 show/course 同构（show 仅多 FM 集数 bump）。
 
 ### D3 · 重复的微型 helper（CustomJS）
 - `formatDate(d)` 本地时区 `YYYY-MM-DD` —— `qcTask` 有，`dailyUpdateCourse` 内联重写，`createDailyNoteByDate` 自己切片

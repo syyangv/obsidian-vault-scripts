@@ -44,14 +44,14 @@ module.exports = async (params) => {
         fm['进度'] = progressNum;
     });
 
-    // Log to today's daily note under the 课程 section
+    // Log to the daily note (active daily note if viewing one, else today) under 课程
     const cjs = window.customJS;
     if (!cjs?.DailyLog) {
         new Notice("✅ 已更新课程进度，但 CustomJS DailyLog 未加载");
         return;
     }
 
-    const dailyFile = app.vault.getAbstractFileByPath(cjs.DailyLog.todayDailyPath());
+    const dailyFile = cjs.DailyLog.resolveDailyTarget(app);
     if (!dailyFile) {
         new Notice("✅ 已更新课程进度，但找不到今日日记");
         return;

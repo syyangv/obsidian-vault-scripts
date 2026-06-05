@@ -59,13 +59,13 @@ module.exports = async (params) => {
         return;
     }
 
-    const file = app.workspace.getActiveFile();
-    if (!file) {
-        new Notice("请先打开一个笔记");
+    const target = cjs.DailyLog.resolveDailyTarget(app);
+    if (!target) {
+        new Notice("找不到今日日记");
         return;
     }
 
-    const result = await cjs.DailyLog.sectionUpsert(app, file, "看电视", "看过集数", selected, episodes);
+    const result = await cjs.DailyLog.sectionUpsert(app, target, "看电视", "看过集数", selected, episodes);
     if (result === "no-section") {
         new Notice("没有找到看电视标题");
         return;

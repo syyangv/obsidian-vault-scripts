@@ -35,40 +35,22 @@ module.exports = async (params) => {
     const pages = await quickAddApi.inputPrompt(pagesPrompt);
     if (!pages) return;
 
-    // Get the active file
-    const file = app.workspace.getActiveFile();
-    if (!file) {
-        new Notice("请先打开一个笔记");
-        return;
-    }
-    
-    let content = await app.vault.read(file);
-    const newEntry = `- [[${selected}]] 完成页数:: ${pages}`;
-    let lines = content.split("\n");
-
-    // Check if this book already exists anywhere in the note — replace in-place
-    const searchStr = `- [[${selected}]] 完成页数:: `;
-    const existingLineIndex = lines.findIndex(l => l.startsWith(searchStr));
-
-    if (existingLineIndex !== -1) {
-        lines[existingLineIndex] = newEntry;
-        await app.vault.modify(file, lines.join("\n"));
-        new Notice(`✏️ 已更新: ${selected} - ${pages}页`);
-        return;
-    }
-
     const cjs = window.customJS;
     if (!cjs?.DailyLog) {
         new Notice("CustomJS DailyLog 未加载");
         return;
     }
 
-    // Add via shared helper. (Existing-anywhere replace already handled above.)
-    // Book-specific fallback: append to end of file if there's no 读书 section.
-    const result = await cjs.DailyLog.sectionUpsert(app, file, "读书", "完成页数", selected, pages);
-    if (result === "no-section") {
-        lines.push(newEntry);
-        await app.vault.modify(file, lines.join("\n"));
+    const target = cjs.DailyLog.resolveDailyTarget(app);
+    if (!target) {
+        new Notice("找不到今日日记");
+        return;
     }
-    new Notice(`✅ 已添加: ${selected} - ${pages}页`);
+
+    const result = await cjs.DailyLog.sectionUpsert(app, target, "读书", "完成页数", selected, pages);
+    if (result === "no-section") {
+        new Notice("日记中没有找到读书标题");
+        return;
+    }
+    new Notice(result === "updated" ? `✏️ 已更新: ${selected} - ${pages}页` : `✅ 已添加: ${selected} - ${pages}页`);
 };
