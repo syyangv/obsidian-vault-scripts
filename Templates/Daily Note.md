@@ -11,7 +11,8 @@ medication_long:
   - 吃药/Glycopyrrlate-1
   - 吃药/Junel1-20
   - 吃药/Acetylcysteine-NAC
-  - 吃药/Zoloft-125mg
+  - 吃药/Zoloft-112.5mg
+  - 吃药/Buspirone-7.5mg
 Supplements:
   - 吃药/保健品/鱼油
   - 吃药/保健品/维生素D
@@ -25,21 +26,25 @@ medication:
 今日甚好: false
 noBuy: false
 小饭桌: false
-modified_at: 2026-04-08
+办公室: false
+modified_at: 2026-06-06
 ---
 ![[dayOfWeek|no-title]]
 ![[dailyNavigation]]
 ![[genTOC]]
 ![[Helper/utils/dayMentions]]
-`BUTTON[add_task]` `BUTTON[addRefill]` `BUTTON[edit_体重]` `BUTTON[edit_起起体重]` `BUTTON[therapy]` `BUTTON[swimming]` 
+`BUTTON[add_task]` `BUTTON[addRefill]` `BUTTON[edit_体重]` `BUTTON[edit_起起体重]` `BUTTON[therapy]` `BUTTON[swimming]`
 
 `BUTTON[qa_tv]` `BUTTON[qa_book]`
 
 ![[importantDates]]
 
+![[Helper/utils/onThisDay]]
+
 **🏮今日甚好🏮:** `INPUT[toggle(class(my-toggle)):今日甚好]`
 **🪷今天没买🪷:** `INPUT[toggle(class(my-toggle)):noBuy]`
 **🍱小饭桌🍱:** `INPUT[toggle(class(my-toggle)):小饭桌]` **🥡外卖🥡:** `INPUT[toggle(class(my-toggle)):外卖]` **🍴外食🍴:** `INPUT[toggle(class(my-toggle)):外食]`
+**🏢办公室🏢:** `INPUT[toggle(class(my-toggle)):办公室]`
 
 # 日总结 %% fold %%
 **⚖️体重:** `VIEW[{体重}]` **🐾起起体重:** `VIEW[{起起体重}]`
@@ -51,7 +56,7 @@ modified_at: 2026-04-08
 
 **🏥 Medical:** `INPUT[inlineListSuggester(option(Dermatologist), option(Psychiatrist), option(Gastroenterologist), option(Dentist), option(Ophthalmologist), option(PCP), option(UrgentCare), option(OBGYN), option(Allergist), option(Urologist)):medical_tags]`
 
-**💊长期Medication:** `INPUT[inlineListSuggester(option(吃药/Zoloft-125mg), option(吃药/Allegra), option(吃药/Glycopyrrlate-1), option(吃药/Junel1-20), option(吃药/Acetylcysteine-NAC)):medication_long]`
+**💊长期Medication:** `INPUT[inlineListSuggester(option(吃药/Zoloft-112.5mg), option(吃药/Allegra), option(吃药/Glycopyrrlate-1), option(吃药/Junel1-20), option(吃药/Acetylcysteine-NAC), option(吃药/Buspirone-7.5mg)):medication_long]`
 
 **🧪Supplements:** `INPUT[inlineListSuggester(option(吃药/保健品/鱼油), option(吃药/保健品/维生素D), option(吃药/保健品/维生素K), option(吃药/保健品/镁-2), option(吃药/保健品/PsylliumHusk-3)):Supplements]`
 
