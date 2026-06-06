@@ -175,13 +175,17 @@ modified_at: 2026-06-06
 
 ## ⚠️ 待确认 / 清理候选
 
-**无引用（确认后再决定去留）**：`onThisDay.md`、`courseProgress.md`、`todayLink.md`、`weeklyLink.md`、`转运月花费.md` ~~`monthlyAmount-购物.md`、`monthlyAmount-电费.md`~~（已删 2026-06-05）
+**待用户决定（未部署的功能）**：`onThisDay.md`、`courseProgress.md`
+**已删（无引用 + 已验证取代）**：~~`todayLink.md`、`weeklyLink.md`~~（homepage 内联取代，删于 2026-06-06）、~~`转运月花费.md`~~（monthlyAmount 取代，删于 2026-06-06）、~~`monthlyAmount-购物.md`、`monthlyAmount-电费.md`~~（删于 2026-06-05）
 > ⚠️ **`tvSync.md` 不是无引用**——被 `Helper/quickadd-scripts/tv-sync.js`（`BUTTON[sync-tv]`）按路径引用，2026-06-06 仍在同步。**之前误判源于 `grep -r` 跳过了 gitignore 的 `/Helper/`**（见 memory `feedback-grep-skips-helper-gitignore`）。本节"无引用"判断须用 `find -exec grep` 复核，非 `grep -r`。
 > 这些未找到 `![[]]`、`[[]]` 或 `dv.view()` 引用（已用 `find -exec grep` 多向量复核：embed/base/脚本路径/定时任务/git 历史全部 0）。
 > **各自的"死因"（2026-06-06 调查）**：
 > - `todayLink.md` / `weeklyLink.md` —— 被 `个人主页.md` 第 17–18 行的**内联 `$=` dataview 表达式取代**（同样产出 `今日记录` / `本周内容` 链接），文件本身未被嵌入。删文件不影响 homepage。
-> - `转运月花费.md` —— 被标签页版 `monthlyAmount.md` 的转运处理取代。
-> - `onThisDay.md`（455 行，带 debounce/once-guard，render-only）、`courseProgress.md`（render + `processFrontMatter` 写回）—— **建好但从未接入任何模板/笔记的功能**（自 2026-04 bulk import 后从未改动）。属"未部署的功能"，删除 vs 部署由用户定。
+> - `转运月花费.md` —— 已验证被 `monthlyAmount.md` 取代（读同一 `Logistics/购物/转运记录` 文件夹、同 filter，标题"含转运占比"）。**已删 2026-06-06。**
+>
+> **仍待决定（未部署的功能，自 2026-04 bulk import 后从未改动、从未嵌入）**：
+> - `onThisDay.md`（455 行）—— "历史上的今天"：显示往年同一天的日记条目（`去年` / `N年前`），render-only，本应嵌入 Daily Note 模板。
+> - `courseProgress.md` —— 课程进度 SVG 图 + 把日记里的进度**自动同步**回课程文件 `进度` frontmatter。⚠️ 其"同步"功能与 `dailyUpdateCourse.js`（按钮也写 `进度`）**重复**，只有"图表"是独有的。本应嵌入课程笔记。
 
 **`.bak` 备份（可直接删，或交给 `cleanupBakFiles.js`）**：`1-Pantry-20260604.bak`、`2-Pantry-20260604.bak`、`Pantry-20260604.bak`
 
