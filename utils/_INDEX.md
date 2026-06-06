@@ -177,7 +177,11 @@ modified_at: 2026-06-06
 
 **无引用（确认后再决定去留）**：`onThisDay.md`、`courseProgress.md`、`todayLink.md`、`weeklyLink.md`、`转运月花费.md` ~~`monthlyAmount-购物.md`、`monthlyAmount-电费.md`~~（已删 2026-06-05）
 > ⚠️ **`tvSync.md` 不是无引用**——被 `Helper/quickadd-scripts/tv-sync.js`（`BUTTON[sync-tv]`）按路径引用，2026-06-06 仍在同步。**之前误判源于 `grep -r` 跳过了 gitignore 的 `/Helper/`**（见 memory `feedback-grep-skips-helper-gitignore`）。本节"无引用"判断须用 `find -exec grep` 复核，非 `grep -r`。
-> 这些未找到 `![[]]`、`[[]]` 或 `dv.view()` 引用，但可能由动态拼接路径加载，**删除前请在 Obsidian 内全局搜索文件名确认**。
+> 这些未找到 `![[]]`、`[[]]` 或 `dv.view()` 引用（已用 `find -exec grep` 多向量复核：embed/base/脚本路径/定时任务/git 历史全部 0）。
+> **各自的"死因"（2026-06-06 调查）**：
+> - `todayLink.md` / `weeklyLink.md` —— 被 `个人主页.md` 第 17–18 行的**内联 `$=` dataview 表达式取代**（同样产出 `今日记录` / `本周内容` 链接），文件本身未被嵌入。删文件不影响 homepage。
+> - `转运月花费.md` —— 被标签页版 `monthlyAmount.md` 的转运处理取代。
+> - `onThisDay.md`（455 行，带 debounce/once-guard，render-only）、`courseProgress.md`（render + `processFrontMatter` 写回）—— **建好但从未接入任何模板/笔记的功能**（自 2026-04 bulk import 后从未改动）。属"未部署的功能"，删除 vs 部署由用户定。
 
 **`.bak` 备份（可直接删，或交给 `cleanupBakFiles.js`）**：`1-Pantry-20260604.bak`、`2-Pantry-20260604.bak`、`Pantry-20260604.bak`
 
