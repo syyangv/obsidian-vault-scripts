@@ -51,7 +51,7 @@ meta-bind/addImportantDate.js ◀──engine── 个人整理/重要日期.md
 1. **QuickAdd 脚本散落 3 个文件夹** —— `utils/`(15) + `quickadd-scripts/`(2) + `meta-bind/`(1)。文件夹名 `quickadd-scripts` 暗示该放全部 QuickAdd 脚本，但绝大多数在 `utils/`。
 2. **`meta-bind/syncCssclassEventsToYearlyGlance.js` 错放** —— 它其实是 **QuickAdd 脚本**（绑在 `quickadd/data.json`），不是 Meta Bind 动作。应归 `quickadd-scripts/`。
 3. **`utils/` 是大杂烩** —— widget + 脚本 + Templater 函数 + JS Engine 动作混在一起。
-4. **日期戳乱名**（renamer 受害者，见 memory）：`任务视图-20260123.js`、`读书笔记-20260408.js`、`Claude Code…-20260406.js`、`2026-W18-20260502.js`。改名会断 QuickAdd 绑定，**不要乱改**。
+4. **日期戳乱名**（renamer 受害者，见 memory）：`任务视图-20260123.js`、`读书笔记-20260408.js`、`Claude Code…-20260406.js`。改名会断 QuickAdd 绑定，**不要乱改**。
 
 ## 5. 重组可行性 & 风险
 
@@ -65,6 +65,6 @@ meta-bind/addImportantDate.js ◀──engine── 个人整理/重要日期.md
 
 ## 6. 低风险即时清理（建议先做这些）
 
-- 🗑️ **`2026-W18-20260502.js`（utils/ 和 quickadd-scripts/ 各一份，内容相同）** —— 全库零引用、不在任何 data.json、不被任何笔记 import → **孤儿，两份都可删**。
+- ✅ **`2026-W18-20260502.js` 已删（2026-06-06，两份）** —— 调查确认是 `meta-bind/addImportantDate.js` 的**旧版重复**（append 到表尾、无排序；live 版按 MM-DD 排序插入，被 `重要日期.md` 调用）。仅被本文档/`_INDEX` 提及，无功能引用。
 - 📁 **`syncCssclassEventsToYearlyGlance.js`** —— 若要整理，移到 `quickadd-scripts/` 并改 `quickadd/data.json` 那一条路径（1 处，Obsidian 关闭时改）。
 - 📌 日期戳乱名文件：保持原样（改名断 QuickAdd），仅在 [[_INDEX]] 记录其真实用途。
