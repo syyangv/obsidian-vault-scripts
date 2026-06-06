@@ -175,7 +175,8 @@ modified_at: 2026-06-06
 
 ## ⚠️ 待确认 / 清理候选
 
-**待用户决定（未部署的功能）**：`onThisDay.md`、`courseProgress.md`
+**已部署**：`onThisDay.md` —— 已嵌入 `Daily Note.md` 模板（`![[importantDates]]` 之后），2026-06-06 验证通过。**无数据时自动隐藏 embed**（`dv.container` 加 `.otd-empty` 类 + 注入的 `:has()` CSS 规则；JS 在 render 阶段够不到 `.internal-embed`，故走 CSS）。
+**待用户决定（未部署的功能）**：`courseProgress.md`（课程进度趋势图 + 自动同步；同步与 `dailyUpdateCourse.js` 重复，仅趋势图独有；课程笔记现用 `课程` 模板的内联进度条）
 **已删（无引用 + 已验证取代）**：~~`todayLink.md`、`weeklyLink.md`~~（homepage 内联取代，删于 2026-06-06）、~~`转运月花费.md`~~（monthlyAmount 取代，删于 2026-06-06）、~~`monthlyAmount-购物.md`、`monthlyAmount-电费.md`~~（删于 2026-06-05）
 > ⚠️ **`tvSync.md` 不是无引用**——被 `Helper/quickadd-scripts/tv-sync.js`（`BUTTON[sync-tv]`）按路径引用，2026-06-06 仍在同步。**之前误判源于 `grep -r` 跳过了 gitignore 的 `/Helper/`**（见 memory `feedback-grep-skips-helper-gitignore`）。本节"无引用"判断须用 `find -exec grep` 复核，非 `grep -r`。
 > 这些未找到 `![[]]`、`[[]]` 或 `dv.view()` 引用（已用 `find -exec grep` 多向量复核：embed/base/脚本路径/定时任务/git 历史全部 0）。

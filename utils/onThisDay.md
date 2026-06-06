@@ -1,8 +1,20 @@
 ---
-modified_at: 2026-01-23
+modified_at: 2026-06-06
 ---
 ```dataviewjs
 (async () => {
+    // Hide this embed unless there's content for today.
+    // JS can't reach `.internal-embed` during render (detached fragment → closest() is null),
+    // so we mark the reachable dv.container `.otd-empty` and let a CSS :has() rule (applied
+    // post-attach) hide the wrapper. Marker is removed below only when content renders.
+    if (!document.getElementById('otd-hide-style')) {
+        const st = document.createElement('style');
+        st.id = 'otd-hide-style';
+        st.textContent = '.internal-embed[src*="onThisDay"]:has(.otd-empty){display:none!important;}';
+        document.head.appendChild(st);
+    }
+    dv.container.classList.add('otd-empty');
+
     // ===== PREVENT MULTIPLE SIMULTANEOUS EXECUTIONS =====
     const activeFile = app.workspace.getActiveFile();
 
@@ -59,6 +71,7 @@ try {
         }
 
         // Render cached data immediately (HTML includes header and frame)
+        dv.container.classList.remove('otd-empty');
         const container = dv.container;
         const wrapper = container.createDiv();
         wrapper.innerHTML = window[cacheKey].html;
@@ -440,6 +453,7 @@ try {
     };
 
     // Render the HTML (using container to render raw HTML)
+    dv.container.classList.remove('otd-empty');
     const container = dv.container;
     const wrapper = container.createDiv();
     wrapper.innerHTML = htmlOutput;
