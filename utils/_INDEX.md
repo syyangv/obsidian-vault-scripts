@@ -114,7 +114,7 @@ modified_at: 2026-06-06
 | 文件 | 类型 | 用途 | 依赖（插件 · 数据源） | 引用 |
 |---|---|---|---|---|
 | `weeklyMedia.md` | md-embed | 周媒体汇总 | DV · `日记/` + `看电视/` | 15 |
-| `tvSync.md` | md-embed | 追剧同步 | DV · `看电视/` + `日记/` | — |
+| `tvSync.md` | md-embed (后台) | 追剧同步（dataviewjs 写回 `last_sync`）| DV · `看电视/` + `日记/` | **`Helper/quickadd-scripts/tv-sync.js`**（`BUTTON[sync-tv]` 后台打开本文件触发同步）|
 | `dailyAddShow.js` | js-quickadd | 日记添加剧集 | QuickAdd · 今日`日记` + `看电视/`标题 | data.json |
 | `dailyAddBook.js` | js-quickadd | 日记添加书 | QuickAdd API | data.json |
 | `dailyUpdateCourse.js` | js-quickadd | 日记更新课程 | QuickAdd · 今日`日记`课程标题 | data.json |
@@ -175,7 +175,8 @@ modified_at: 2026-06-06
 
 ## ⚠️ 待确认 / 清理候选
 
-**无引用（确认后再决定去留）**：`onThisDay.md`、`tvSync.md`、`courseProgress.md`、`todayLink.md`、`weeklyLink.md`、`转运月花费.md` ~~`monthlyAmount-购物.md`、`monthlyAmount-电费.md`~~（已删 2026-06-05）
+**无引用（确认后再决定去留）**：`onThisDay.md`、`courseProgress.md`、`todayLink.md`、`weeklyLink.md`、`转运月花费.md` ~~`monthlyAmount-购物.md`、`monthlyAmount-电费.md`~~（已删 2026-06-05）
+> ⚠️ **`tvSync.md` 不是无引用**——被 `Helper/quickadd-scripts/tv-sync.js`（`BUTTON[sync-tv]`）按路径引用，2026-06-06 仍在同步。**之前误判源于 `grep -r` 跳过了 gitignore 的 `/Helper/`**（见 memory `feedback-grep-skips-helper-gitignore`）。本节"无引用"判断须用 `find -exec grep` 复核，非 `grep -r`。
 > 这些未找到 `![[]]`、`[[]]` 或 `dv.view()` 引用，但可能由动态拼接路径加载，**删除前请在 Obsidian 内全局搜索文件名确认**。
 
 **`.bak` 备份（可直接删，或交给 `cleanupBakFiles.js`）**：`1-Pantry-20260604.bak`、`2-Pantry-20260604.bak`、`Pantry-20260604.bak`
