@@ -5,7 +5,7 @@ created: 2026-06-04
 tags:
   - meta/index
   - snippets
-modified_at: 2026-06-05
+modified_at: 2026-06-06
 ---
 
 # Helper/utils — Snippet & Script Index
@@ -293,7 +293,7 @@ QuickAdd 在 `data.json` 写死 15 条完整路径；GDrive 冲突改名（`qcTa
 > 拷贝漂移证据：`dailyAddBook` 是现代 `const`/箭头，`dailyAddShow`/`dailyUpdateCourse` 是旧 `var`/`function`——克隆后只改了一半。
 
 → **✅ 已完成（2026-06-05）**：建 `Helper/lib/DailyLog.js`（CustomJS 类，`window.customJS.DailyLog`），抽出 `sectionUpsert(app, file, keyword, prop, selected, value)`。`dailyAddShow/Book/UpdateCourse` 各只剩「过滤 + 取值 + 调用」，共省 ~98 行。Node 单测覆盖 `sectionUpsert` + `resolveDailyTarget`。
-> **结构统一（2026-06-05）**：三脚本目标笔记解析统一为 `DailyLog.resolveDailyTarget(app)` = **当前笔记若是日记（`日记/…/YYYY-MM-DD`）则用之，否则今日日记**。book 归一化（去掉 replace-anywhere + append-to-end 特例），现与 show/course 同构（show 仅多 FM 集数 bump）。
+> **结构统一（2026-06-05）**：三脚本目标笔记解析统一为 `DailyLog.resolveDailyTarget(app)` = **当前笔记若是日记（`日记/…/YYYY-MM-DD`）则用之，否则今日日记**。book 归一化（去掉 replace-anywhere + append-to-end 特例），现与 show/course 同构（show 仅多 FM 集数 bump）。**三个 button 已 live-tested ✅（2026-06-06，在今日日记上确认 add/update + 落入正确 section）。**
 
 ### D3 · 重复的微型 helper（CustomJS）
 - `formatDate(d)` 本地时区 `YYYY-MM-DD` —— `qcTask` 有，`dailyUpdateCourse` 内联重写，`createDailyNoteByDate` 自己切片
