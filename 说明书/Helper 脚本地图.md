@@ -49,7 +49,7 @@ meta-bind/addImportantDate.js ◀──engine── 个人整理/重要日期.md
 ## 4. 位置 vs 用途 不一致（重组候选）
 
 1. **QuickAdd 脚本散落 3 个文件夹** —— `utils/`(15) + `quickadd-scripts/`(2) + `meta-bind/`(1)。文件夹名 `quickadd-scripts` 暗示该放全部 QuickAdd 脚本，但绝大多数在 `utils/`。
-2. **`meta-bind/syncCssclassEventsToYearlyGlance.js` 错放** —— 它其实是 **QuickAdd 脚本**（绑在 `quickadd/data.json`），不是 Meta Bind 动作。应归 `quickadd-scripts/`。
+2. ✅ **已修** `syncCssclassEventsToYearlyGlance.js` 错放 —— 它其实是 **QuickAdd 脚本**（绑在 `quickadd/data.json`），不是 Meta Bind 动作。已从 `meta-bind/` 移到 `quickadd-scripts/`，`data.json` 路径已同步更新。
 3. **`utils/` 是大杂烩** —— widget + 脚本 + Templater 函数 + JS Engine 动作混在一起。
 4. **日期戳乱名**（renamer 受害者，见 memory）：`任务视图-20260123.js`、`读书笔记-20260408.js`、`Claude Code…-20260406.js`。改名会断 QuickAdd 绑定，**不要乱改**。
 
