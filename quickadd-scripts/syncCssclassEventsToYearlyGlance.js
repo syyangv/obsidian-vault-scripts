@@ -1,5 +1,3 @@
-#!/usr/bin/env node
-
 const YEARLY_GLANCE_DATA_VAULT_PATH = ".obsidian/plugins/yearly-glance/data.json";
 const EVENT_CSSCLASS = "yearly-glance-event";
 const SYNC_SOURCE = "cssclass-events-sync";
