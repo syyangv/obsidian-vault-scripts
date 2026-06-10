@@ -92,7 +92,7 @@ try {
     } catch(e) {}
 
 
-    // ── Weather data (Tomorrow.io via pwa-wardrobe proxy) ───────────────
+    // ── Weather data (from pwa-wardrobe weather_daily DB) ─────────────
     // Sims 4-style weather tile icons (22×22 PNG base64)
     const WX_IMG = {
         sunny:'iVBORw0KGgoAAAANSUhEUgAAABYAAAAWCAYAAADEtGw7AAADPklEQVR42s2VT2hcVRTGf+e+9+aZCVPLzJukwRZtyUKKXaldFZxJkGIoggtDsnEj6EpXEQShaaELISsFl250YWk32kVotM1MR21BEl3YioSSIFRIOjMkTdJ0/rx3j4uXeU3SqRY3erb3nu9897vnfAeeMHQOTy/g8L8MncQAqCIx2xc9/T5/Rq/mhgB2MtcLOJ17Twa+I0EvDaT1lz7V2WCqI8veAnvDTYAUQxmDyV/C6hdSrJ3fTozwreAKiMY6LyJawpUioZZyBVruH3JyZUkVEUGB+MlJlLGIfklKvtJKMA6gN0nJyZX7rNn32LKfyygRRyEGDU7hmxJeeERBuLgHbxdrQEvBmF7LTydSXD6Y1SvZt/Xn3ITeCF4D0CvZ43ojr1oKTnWTRbppK6NEADrT34uvE9j2++T8LGJgswVGp3lgzmPtnzJcn+3I8niN5+OquoQnh2mQsh/QH02yloee50PEAKuG5q0R1J7g6ecC1brDPKJzeMyDvEu7K+OkUOVAnnbzdzLBPrLHTPwfFowHW9UGjd98NqNzUqif7pYvnafr1dwQGVPEUYd7zjdo+zi51Kf0vtxGPA+imIdacHuU9QXh7uIKbvoFtP0OnqQJtcGD/VMycrvpcgRDnDVESj7CNUC0jFUf1yhiYjCRh9+iVsABNIORHiL5EF8ytLXJvtVPgKaRl2JNMPUzbKXSYDPUap/hOTdZbwmNVcHxYnBV4kJRiL2niMxhvSptM0CYSiO9++VEfeOxGifN/13uW7LyKv6xBuk+HyzYyHL3VzA1hy2/IEPL17pqnIBBPDNlHCkSaiV4Bcwh3GiKlHMA7xlQF3QNmjW4734tw9U3OkQoxC36yOQJKBcxyUR5UibUJW67g6xH56guLrOxUKNRv4z6I5jqm1oOZrQUjG33cDLOj5oOiM7mhvX6w4lKzq8fzerC4MFd9yvBuP6YV60E4zqJ6Uzubim2DURn+g+TCp+VYr2sJVwyCBso5CZwZAL3qUPcudPiFiJnCbUUjGHkLWz1dQpYEew/2uYuiyxlP9af+lTnBtIdIn9nm6aLEclOv9gRmzR1nZaT6CijRJ2l8O+3yvSgrz/kMv/5evsLq++Omhqtwz4AAAAASUVORK5CYII=',
@@ -120,9 +120,8 @@ try {
     };
     let weatherByDate = {};
     try {
-        const wCacheKey = 'plumbob_weather_v7';
-        const wCacheTTL = 8 * 60 * 60 * 1000;
-        try { localStorage.removeItem('plumbob_weather'); localStorage.removeItem('plumbob_weather_v2'); } catch {}
+        const wCacheKey = 'plumbob_weather_v8_' + MONTH_YEAR;
+        const wCacheTTL = 4 * 60 * 60 * 1000;
         let wCached = null;
         try {
             const raw = localStorage.getItem(wCacheKey);
@@ -135,20 +134,15 @@ try {
             weatherByDate = wCached;
         } else {
             const wResp = await requestUrl({
-                url: 'https://pwa-wardrobe.fly.dev/api/weather/forecast',
+                url: 'http://localhost:8000/api/weather/history?month=' + MONTH_YEAR,
             });
             if (wResp.status === 200) {
-                const wJson = wResp.json;
-                const wDays = (wJson.timelines || wJson).daily || [];
-                const oldData = (() => { try { const r = localStorage.getItem(wCacheKey); return r ? JSON.parse(r).data || {} : {}; } catch { return {}; } })();
-                weatherByDate = { ...oldData };
-                for (const entry of wDays) {
-                    const dk = entry.time.slice(0, 10);
-                    const v = entry.values || {};
+                const byDate = wResp.json.byDate || {};
+                for (const [dk, v] of Object.entries(byDate)) {
                     weatherByDate[dk] = {
-                        icon: WEATHER_CODES[v.weatherCodeMax || v.weatherCode] || '',
-                        hi: Math.round(v.temperatureMax ?? 0),
-                        lo: Math.round(v.temperatureMin ?? 0),
+                        icon: WEATHER_CODES[v.weatherCode] || '',
+                        hi: Math.round(v.tempMax ?? 0),
+                        lo: Math.round(v.tempMin ?? 0),
                     };
                 }
                 try { localStorage.setItem(wCacheKey, JSON.stringify({ ts: Date.now(), data: weatherByDate })); } catch {}
@@ -369,6 +363,7 @@ try {
                 const tags = Array.isArray(jq) ? jq.map(String) : [String(jq)];
                 if (tags.some(t => t === '放假/病假'))     dailyLeave[date] = 'sick';
                 if (tags.some(t => t === '放假/PTO'))     dailyLeave[date] = 'pto';
+                if (tags.some(t => t === '放假/公共假期')) dailyLeave[date] = 'public';
             }
         } catch(e) {}
         try { const _p = DIARY_FOLDER + '/' + date + '.md'; const _tf = app.vault.getAbstractFileByPath(_p); const _cache = _tf ? app.metadataCache.getFileCache(_tf) : null; const _fm = (_cache && _cache.frontmatter) ? _cache.frontmatter : {}; if (_fm['办公室'])   dailyOffice[date]  = true; if (_fm['今日甚好']) dailyGoodDay[date] = true; if (_fm['外食'])     dailyWaishi[date]  = true; } catch(e) {}
@@ -456,6 +451,8 @@ try {
             ? `<div style="width:22px;height:22px;flex-shrink:0;background-image:url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABYAAAAWCAYAAADEtGw7AAAEEElEQVR42p2Vb0xbVRjGn3PuvaUttFnD/pBtGYTNKgNKt64bUuNd92FuxGAmFogBlphJDNtQjB8IM7u9LtEZJE6ZyfZlkU2JwtQQSZyZRGq2LPHPxMRMt2VAB0lbSjccpWW9597jl5moQUZ9P745+Z3nvOfJ8xKr1VqQSqWiAAgAjixKURSKYBADpFTcdej1Lx5zOfcuzM5GJ26MNcJqtRY8OEeygXLOCeecACBt7Z/1DV2a4ePxee1WeJ6/2nZ+SMT/KM45CQJEJYQePDzwkfyUuz4x/YP+ZcRGpAUr1437JkGSpDxN05LLVawoCh0ZGSGq389bWz/9ZG+try6Vvs5O9/SQ+TkLnZvmGcri9WLWSkkQKg/y1pnys/7qrQHBFGNnez+m6wu91JLJYY4Vev2xE4dGxSyhJMiDfKYu2Lurdl+jxTzNuo53k80VNZT8YZnMt6FNffO5wUCgXyDLdAVRABLknDeWuHqfcXua9I3r2IWr10huSbWgp8y37cjZ3XWq7rqifCuqqp/RZYgliiwLQc7Jgc2lH/qK1jfNO4u06cHPSX4kJliYI2Kh5uquU3XXW1pOS6rqZwDwULu1eDwSCMGBktKeU7t388HOI5nXXC62v3ADf8tfd7u5daAUAGRZ+edYlwK3wCMBQCDX1viOz6df6uzUXiwv145sLOaHS8oivgrv4tClwAogAsDTjpX1b1dWsYsdHUZjeal20unkL5dsjrb7tlf8JxTAojNWIIsqwJ4tKqr3byruW7t9G/16+CJzptPib5IUlVav2vPu5e9/kWVZDIVUthhD0DQtD0BSAehORSE7AUENh9gLpa7aNbnW/vWVXuDqj+xWJCqZ7I5Yat266veHh0cVWRZ7QyG21K8XBBAQ/t5o9lbuO+p2698dOmi0bduSeWlDIT/u2RZrqKnZAgCKLD/U/wRAAYBo08GOfOP+vMUU/t1beHf2/BPurcS4cY1NRKPSlVx7NPeRjXtO9vc/eP7SSgGA5DmdK5tttv35mUy7iVJb6k7CJFc9bqYzCT06NSVcy7OPWytctUfPnPlZkWVRXQYUAMjzW7b2+nTWvEkE7KvzYa+swuTlK3rkdlgYNejQ6Nq1TaFQaDYACAOAvtwIEPOTc802k2RMZHQUJNPkUflJnr5zl351c3zqvaHBWpSVZbKFAoAoMh2ThoEE0+h8LAPLG8e4zSxBsNun4XZnFICqWUIBgCYtljEBnEqE6HMGMYx791gsniBJpn0DxghkmS6WyYqi0KUynOz07NjhzaT7Vi+kileZc0DBMQoxbJSX7TrR1zfGAUKy3IV/2c3R0NBgKrh56wSJzzjuO1Yk4s41rwwMXIj/K0oJAN7d3W6592vYl0MIhcX6U+cH5xKLXf4nR/64K4UWH8cAAAAASUVORK5CYII=');background-size:contain;background-repeat:no-repeat;background-position:center;"></div>`
             : leaveType === 'pto' && ICON_B64.fangjia
             ? `<div style="width:22px;height:22px;flex-shrink:0;background-image:url('data:image/png;base64,${ICON_B64.fangjia}');background-size:contain;background-repeat:no-repeat;background-position:center;"></div>`
+            : leaveType === 'public' && !holiday
+            ? `<div style="width:22px;height:22px;flex-shrink:0;display:flex;align-items:center;justify-content:center;"><svg viewBox="0 0 24 24" width="20" height="20"><rect x="5" y="3" width="1.6" height="18" rx="0.8" fill="#bfa000"/><path d="M6.6 4 L18 6.6 L6.6 9.2 Z" fill="#f1c40f"/></svg></div>`
             : dailyOffice[date] && ICON_B64.bangong
             ? `<div style="width:22px;height:22px;flex-shrink:0;background-image:url('data:image/png;base64,${ICON_B64.bangong}');background-size:contain;background-repeat:no-repeat;background-position:center;"></div>`
             : '';
