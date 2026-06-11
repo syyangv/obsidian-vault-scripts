@@ -576,15 +576,17 @@ modified_at: 2026-06-08
         // 实际(背景填充) + 计划(同色边框) 合并，按日期排序
         const listRecords = [...holidayRecords, ...plannedRecords]
             .sort((a, b) => a.date.localeCompare(b.date));
+        // 编号按额度类别累计：PTO + 公共假期 共用年假额度(1..annualLeaveLimit)，病假单独从 1 重新开始
+        { let __hc = 0, __sc = 0; for (const r of listRecords) { r.seq = (r.type === 'sick') ? ++__sc : ++__hc; } }
 
-        const renderRecord = (record, displayIndex) => {
+        const renderRecord = (record) => {
             const typeInfo = getTypeInfo(record.type);
             const boxStyle = record.planned
                 ? `background: transparent; border: 1px solid ${typeInfo.color};`
                 : `background: ${typeInfo.bg}; border: 1px solid transparent;`;
             return `
                 <div style="display: flex; align-items: center; padding: 4px 8px; border-radius: 4px; ${boxStyle} margin: 2px 0;">
-                    <span style="width: 25px; color: var(--text-muted); font-size: 11px;">${displayIndex}.</span>
+                    <span style="width: 25px; color: var(--text-muted); font-size: 11px;">${record.seq}.</span>
                     <a class="internal-link" data-href="${record.date}" href="${record.date}" style="color: var(--text-normal); text-decoration: none; font-family: monospace; font-size: 12px;">${record.date}</a>
                     <span style="margin: 0 8px; color: var(--text-muted); font-size: 12px;">周${record.dayOfWeek}</span>
                     <span style="padding: 2px 8px; border-radius: 3px; background: ${typeInfo.color}; color: white; font-size: 11px; font-weight: 500;">${typeInfo.name}</span>${record.note ? ` <span style="margin-left:6px; color: var(--text-muted); font-size: 11px;">${record.note}</span>` : ''}
@@ -601,10 +603,9 @@ modified_at: 2026-06-08
                 listRecords.slice(itemsPerColumn * 3),
             ];
             const columnsHtml = columns
-                .map((col, ci) => {
-                    const offset = itemsPerColumn * ci;
+                .map((col) => {
                     const inner = col
-                        .map((record, index) => renderRecord(record, offset + index + 1))
+                        .map((record) => renderRecord(record))
                         .join('');
                     return `<div style="flex: 1;">${inner}</div>`;
                 })
