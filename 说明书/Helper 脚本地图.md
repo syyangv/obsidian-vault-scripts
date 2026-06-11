@@ -1,12 +1,12 @@
 ---
 tags:
   - meta/index
-modified_at: 2026-06-06
+modified_at: 2026-06-11
 ---
 
 # Helper 脚本地图（文件夹 · 用途 · 重组就绪度）
 
-> 配套：[[_INDEX]]（`utils/` 内部详表）。本文是 `Helper/` **整体**总览，按**用途**而非当前文件夹组织，供潜在重组参考。
+> 配套：[[_INDEX]]（`utils/` 内部详表）· [[Obsidian 技能编排关系]]（用哪个 Claude 技能创建/管理脚本的分流图）。本文是 `Helper/` **整体**总览，按**用途**而非当前文件夹组织，供潜在重组参考。
 > ⚠️ 查引用一律用 `find … -exec grep`，**不要用 `grep -r`**（`/Helper/` 被外层 vault `.gitignore` 排除，`grep -r` 会整树跳过）。详见 memory `feedback-grep-skips-helper-gitignore`。
 
 ## 0. 新脚本放哪？— 决策（先问「怎么被调用」，文件夹是**被插件配置钉死的**，不是偏好）
