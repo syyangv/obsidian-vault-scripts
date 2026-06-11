@@ -9,6 +9,23 @@ modified_at: 2026-06-06
 > 配套：[[_INDEX]]（`utils/` 内部详表）。本文是 `Helper/` **整体**总览，按**用途**而非当前文件夹组织，供潜在重组参考。
 > ⚠️ 查引用一律用 `find … -exec grep`，**不要用 `grep -r`**（`/Helper/` 被外层 vault `.gitignore` 排除，`grep -r` 会整树跳过）。详见 memory `feedback-grep-skips-helper-gitignore`。
 
+## 0. 新脚本放哪？— 决策（先问「怎么被调用」，文件夹是**被插件配置钉死的**，不是偏好）
+
+| 脚本是… | 被谁调用 | → 放进 | 形式 | 约束 |
+|---|---|---|---|---|
+| **QuickAdd 脚本** | QuickAdd macro / 命令面板 / 按钮 QuickAdd 动作 | `quickadd-scripts/` | `.js`，`module.exports = async (params) => {}` | 必须在 `quickadd/data.json` 注册完整路径（**关 Obsidian 后**改，退出时会回写） |
+| **Templater 函数** | `tp.user.x` | `utils/`（**强制**） | `.js` | 被 `user_scripts_folder = Helper/utils` 钉死，挪出即断 |
+| **CustomJS 类** | `window.customJS.X` | `lib/`（**强制**） | `.js` | 被 `jsFolder = Helper/lib` 钉死 |
+| **Meta Bind / JS Engine 动作** | 笔记按钮 `file:` → `engine` | `meta-bind/` | `.js` | 调用方笔记里写死路径，改路径要同步改笔记 |
+| **dataviewjs widget** | `![[名字]]` 嵌入 | `utils/` | `.md` | 按 basename 匹配，**移动 OK、改名断** |
+| **dv.view widget** | `dv.view("路径")` | `utils/` | `.js` | 按路径；Drive vault 上 dv.view 看不到外部新建 .js → 笔记用 INLINE 副本（见 `subscriptionGantt.js`） |
+| **数据 / 笔记模板** | 被读取 / folder-template | `holidays/`(数据) · `Templates/`(模板) · `Banners/` | `.md` | — |
+
+**两条横切铁律：**
+1. **改 `quickadd/data.json` 必须先关 Obsidian**（运行中退出会用内存里的旧版覆盖你的改动）。
+2. **`.obsidian/` 被 gitignore** → `data.json` + 插件配置不在版本控制内；改了要在 vault 笔记里记一笔，并先备份。
+3. 新建 `.js` 用 Bash（`/tmp` 写好再 `cp`，或 `git mv`），别用编辑器直写到 vault 根活动笔记旁——历史上 `paste-image-rename` 插件会把新 `.js` 改名成 `<活动笔记>-<日期>.js`（**2026-06-11 已加 `excludeExtensionPattern` 修复**，此条为防御纵深）。
+
 ## 1. 文件夹一览
 
 > ✅ **2026-06-11 已重组**：所有 QuickAdd 脚本已集中到 `quickadd-scripts/`（15 个从 `utils/` 迁入 + 早前 `syncCssclass` 从 `meta-bind/`）。`读书笔记-20260408.js` 已改名 `qaNewBook.js`。`subscriptionGantt.js`（订阅 Gantt dv.view widget）已从 `个人整理/日常工具/` 归入 `utils/` 并对账重建为权威源（参数化 include/exclude/barScale）。已删：`organizeQuickCapture` 坏宏 + `任务视图-20260123` 坏链 + `editWeightField` 重复孤儿。**根因修复**：`.js` 被改名为 `<活动笔记>-<日期>.js` 是 `obsidian-paste-image-rename` 插件（`handleAllAttachments` + 空 `excludeExtensionPattern`）所致，已加排除 `js|mjs|cjs|ts|jsx|tsx|css|json|html`。`utils/` 现仅余 dataviewjs widget + Templater 函数 + `holidays/` 数据。
