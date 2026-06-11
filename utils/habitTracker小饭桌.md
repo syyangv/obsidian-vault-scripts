@@ -32,21 +32,29 @@ try {
     // ========================================
     // 注入 CSS 使方块变成正方形
     // ========================================
-    const styleId = 'cooking-combined-heatmap-square-fix';
-    if (!document.getElementById(styleId)) {
-        const style = document.createElement('style');
-        style.id = styleId;
-        style.textContent = `
-            .heatmap-calendar-graph rect.day {
-                width: 10px !important;
-                height: 10px !important;
-            }
-            .heatmap-calendar-graph {
-                --cell-size: 10px;
-            }
-        `;
-        document.head.appendChild(style);
-    }
+    // Plugin renders <ul class="heatmap-calendar-boxes"><li> — NOT SVG rects.
+    const staleStyle = document.getElementById('heatmap-square-fix');
+    if (staleStyle) staleStyle.remove();
+    const fixStyle = document.createElement('style');
+    fixStyle.id = 'heatmap-square-fix';
+    fixStyle.textContent = `
+        .heatmap-calendar-graph {
+            width: 100% !important;
+            grid-template-columns: auto 1fr !important;
+            margin-top: 0 !important;
+            margin-bottom: 3px !important;
+            padding-top: 0 !important;
+            padding-bottom: 0 !important;
+        }
+        .heatmap-calendar-boxes {
+            display: grid !important;
+            grid-template-columns: repeat(54, 1fr) !important;
+            row-gap: 1.5px !important;
+            column-gap: 1.5px !important;
+        }
+        .heatmap-calendar-boxes li { aspect-ratio: 1 !important; border-radius: 2px !important; }
+    `;
+    document.head.appendChild(fixStyle);
 
     // ========================================
     // 安全工具函数 Safe Utility Functions
