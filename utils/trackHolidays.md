@@ -1,5 +1,5 @@
 ---
-modified_at: 2026-03-03
+modified_at: 2026-06-08
 ---
 
 ```dataviewjs
@@ -56,7 +56,7 @@ modified_at: 2026-03-03
         // ========================================
         // 缓存工具函数 Cache Utility Functions
         // ========================================
-        const CACHE_KEY = 'track-holidays-data-v1';
+        const CACHE_KEY = 'track-holidays-data-v2';
         const CACHE_TTL_MINUTES = 240;
 
         const loadFromCache = (forYear) => {
@@ -306,6 +306,16 @@ modified_at: 2026-03-03
 
         // Sort holiday records by date
         holidayRecords.sort((a, b) => a.date.localeCompare(b.date));
+        // 去重保险：同一 date+type 只保留一条（防御历史缓存或重复扫描）
+        {
+            const __seenRec = new Set();
+            holidayRecords = holidayRecords.filter((r) => {
+                const k = `${r.date}|${r.type}`;
+                if (__seenRec.has(k)) return false;
+                __seenRec.add(k);
+                return true;
+            });
+        }
 
         // Calculate cumulative data with type information
         let cumulative = 0;
@@ -350,11 +360,60 @@ modified_at: 2026-03-03
             };
         });
 
+        // ===== 计划请假投影（请假计划.md，仅未来 PTO；不进缓存，每次实时读取）=====
+        const __todayIso = (() => {
+            const d = new Date();
+            return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        })();
+        const plannedMainByMonth = {}; // PTO + 公共假期（计入主投影线，与主线 PTO+public 一致）
+        let plannedPtoTotal = 0;       // 仅 PTO（年度额度摘要）
+        let plannedMainTotal = 0;      // PTO + 公共假期（决定是否画虚线投影）
+        const plannedRecords = []; // 未来计划（PTO + 病假 + 公共假期），用于明细列表（边框样式）
+        try {
+            // adapter.read = 直读磁盘，绕过 Obsidian cachedRead（外部修改的文件 cachedRead 会返回旧内容）
+            const planRaw = await app.vault.adapter.read("个人整理/请假计划.md");
+            if (planRaw) {
+                for (const line of planRaw.split(/\r?\n/)) {
+                    const cells = line.split('|').map(c => c.trim()).filter(Boolean);
+                    const dateCell = cells.find(c => /^\d{4}-\d{2}-\d{2}$/.test(c));
+                    if (!dateCell || !dateCell.startsWith(year + '-') || dateCell <= __todayIso) continue;
+                    const isPto = cells.some(c => c.toLowerCase() === 'pto');
+                    const isSick = cells.some(c => c === '病假' || c.toLowerCase() === 'sick');
+                    const isPublic = cells.some(c => c === '公共假期' || c.toLowerCase() === 'public');
+                    if (!isPto && !isSick && !isPublic) continue;
+                    const mon = dateCell.substring(0, 7);
+                    if (isPto) {
+                        plannedMainByMonth[mon] = (plannedMainByMonth[mon] || 0) + 1;
+                        plannedPtoTotal++;
+                        plannedMainTotal++;
+                        plannedRecords.push({ date: dateCell, dayOfWeek: getDayOfWeek(dateCell), type: 'pto', planned: true });
+                    }
+                    if (isPublic) {
+                        plannedMainByMonth[mon] = (plannedMainByMonth[mon] || 0) + 1;
+                        plannedMainTotal++;
+                        plannedRecords.push({ date: dateCell, dayOfWeek: getDayOfWeek(dateCell), type: 'public', planned: true });
+                    }
+                    if (isSick) {
+                        plannedRecords.push({ date: dateCell, dayOfWeek: getDayOfWeek(dateCell), type: 'sick', planned: true });
+                    }
+                }
+            }
+        } catch (e) { /* 无计划文件 → 不投影 */ }
+        plannedRecords.sort((a, b) => a.date.localeCompare(b.date));
+
+        let __plannedCum = 0;
+        const projData = chartData.map(d => {
+            __plannedCum += (plannedMainByMonth[d.monthFull] || 0);
+            return { projected: (d.cumulative || 0) + __plannedCum };
+        });
+        const projectedTotal = projData.length > 0 ? projData[projData.length - 1].projected : 0;
+
         // Calculate totals safely
         const totalDays = chartData.length > 0 ? (chartData[chartData.length - 1].cumulative || 0) : 0;
         const totalSickDays = sickChartData.length > 0 ? (sickChartData[sickChartData.length - 1].cumulative || 0) : 0;
 
         const maxCumulative = Math.max(
+            projectedTotal || 0,
             ...chartData.map(d => d.cumulative || 0), 
             annualLeaveLimit || 1, 
             5
@@ -396,6 +455,16 @@ modified_at: 2026-03-03
             const y = chartHeight - padding - ((d.cumulative || 0) / maxCumulative) * (chartHeight - 2 * padding);
             return { x: x || padding, y: isNaN(y) ? (chartHeight - padding) : y, data: d };
         });
+
+        // 计划投影坐标（虚线，与主线同 x 轴）
+        const projCoords = projData.map((d, i) => {
+            const x = padding + (i / Math.max(projData.length - 1, 1)) * (chartWidth - 2 * padding);
+            const y = chartHeight - padding - ((d.projected || 0) / maxCumulative) * (chartHeight - 2 * padding);
+            return { x: x || padding, y: isNaN(y) ? (chartHeight - padding) : y };
+        });
+        const projPathString = projCoords
+            .map((c, i) => `${i === 0 ? 'M' : 'L'} ${c.x} ${c.y}`)
+            .join(' ');
 
         // Calculate SVG path coordinates for sick leave chart
         const sickPathCoords = sickChartData.map((d, i) => {
@@ -491,76 +560,58 @@ modified_at: 2026-03-03
 
         // Summary text
         const remainingDays = Math.max(0, annualLeaveLimit - totalDays);
+        const projectedRemaining = Math.max(0, annualLeaveLimit - (totalDays + plannedPtoTotal));
+        const plannedText = plannedPtoTotal > 0
+            ? ` | <strong>计划:</strong> +${plannedPtoTotal} → 预计剩余 ${projectedRemaining}`
+            : '';
         const quotaText = annualLeaveLimit > 0 
-            ? `<br><strong>Annual Leave Quota:</strong> ${annualLeaveLimit} days | <strong>Remaining:</strong> ${remainingDays} days`
+            ? `<br><strong>Annual Leave Quota:</strong> ${annualLeaveLimit} days | <strong>Remaining:</strong> ${remainingDays} days${plannedText}`
             : '<br><strong>Annual Leave Quota:</strong> Not Set';
 
         // Build holiday list HTML in four columns
         let holidayListHtml;
-        if (holidayRecords.length > 0) {
-            const itemsPerColumn = Math.ceil(holidayRecords.length / 4);
-            const firstColumn = holidayRecords.slice(0, itemsPerColumn);
-            const secondColumn = holidayRecords.slice(itemsPerColumn, itemsPerColumn * 2);
-            const thirdColumn = holidayRecords.slice(itemsPerColumn * 2, itemsPerColumn * 3);
-            const fourthColumn = holidayRecords.slice(itemsPerColumn * 3);
+        // 实际(背景填充) + 计划(同色边框) 合并，按日期排序
+        const listRecords = [...holidayRecords, ...plannedRecords]
+            .sort((a, b) => a.date.localeCompare(b.date));
 
-            const firstColumnHtml = firstColumn.map((record, index) => {
-                const typeInfo = getTypeInfo(record.type);
-                return `
-                    <div style="display: flex; align-items: center; padding: 4px 8px; border-radius: 4px; background: ${typeInfo.bg}; margin: 2px 0;">
-                        <span style="width: 25px; color: var(--text-muted); font-size: 11px;">${index + 1}.</span>
-                        <a class="internal-link" data-href="${record.date}" href="${record.date}" style="color: var(--text-normal); text-decoration: none; font-family: monospace; font-size: 12px;">${record.date}</a>
-                        <span style="margin: 0 8px; color: var(--text-muted); font-size: 12px;">周${record.dayOfWeek}</span>
-                        <span style="padding: 2px 8px; border-radius: 3px; background: ${typeInfo.color}; color: white; font-size: 11px; font-weight: 500;">${typeInfo.name}</span>
-                    </div>
-                `;
-            }).join('');
+        const renderRecord = (record, displayIndex) => {
+            const typeInfo = getTypeInfo(record.type);
+            const boxStyle = record.planned
+                ? `background: transparent; border: 1px solid ${typeInfo.color};`
+                : `background: ${typeInfo.bg}; border: 1px solid transparent;`;
+            const plannedTag = record.planned
+                ? ` <span style="color: var(--text-faint); font-size: 10px;">(计划)</span>`
+                : '';
+            return `
+                <div style="display: flex; align-items: center; padding: 4px 8px; border-radius: 4px; ${boxStyle} margin: 2px 0;">
+                    <span style="width: 25px; color: var(--text-muted); font-size: 11px;">${displayIndex}.</span>
+                    <a class="internal-link" data-href="${record.date}" href="${record.date}" style="color: var(--text-normal); text-decoration: none; font-family: monospace; font-size: 12px;">${record.date}</a>
+                    <span style="margin: 0 8px; color: var(--text-muted); font-size: 12px;">周${record.dayOfWeek}</span>
+                    <span style="padding: 2px 8px; border-radius: 3px; background: ${typeInfo.color}; color: white; font-size: 11px; font-weight: 500;">${typeInfo.name}</span>${plannedTag}
+                </div>
+            `;
+        };
 
-            const secondColumnHtml = secondColumn.map((record, index) => {
-                const typeInfo = getTypeInfo(record.type);
-                const displayIndex = itemsPerColumn + index + 1;
-                return `
-                    <div style="display: flex; align-items: center; padding: 4px 8px; border-radius: 4px; background: ${typeInfo.bg}; margin: 2px 0;">
-                        <span style="width: 25px; color: var(--text-muted); font-size: 11px;">${displayIndex}.</span>
-                        <a class="internal-link" data-href="${record.date}" href="${record.date}" style="color: var(--text-normal); text-decoration: none; font-family: monospace; font-size: 12px;">${record.date}</a>
-                        <span style="margin: 0 8px; color: var(--text-muted); font-size: 12px;">周${record.dayOfWeek}</span>
-                        <span style="padding: 2px 8px; border-radius: 3px; background: ${typeInfo.color}; color: white; font-size: 11px; font-weight: 500;">${typeInfo.name}</span>
-                    </div>
-                `;
-            }).join('');
-
-            const thirdColumnHtml = thirdColumn.map((record, index) => {
-                const typeInfo = getTypeInfo(record.type);
-                const displayIndex = itemsPerColumn * 2 + index + 1;
-                return `
-                    <div style="display: flex; align-items: center; padding: 4px 8px; border-radius: 4px; background: ${typeInfo.bg}; margin: 2px 0;">
-                        <span style="width: 25px; color: var(--text-muted); font-size: 11px;">${displayIndex}.</span>
-                        <a class="internal-link" data-href="${record.date}" href="${record.date}" style="color: var(--text-normal); text-decoration: none; font-family: monospace; font-size: 12px;">${record.date}</a>
-                        <span style="margin: 0 8px; color: var(--text-muted); font-size: 12px;">周${record.dayOfWeek}</span>
-                        <span style="padding: 2px 8px; border-radius: 3px; background: ${typeInfo.color}; color: white; font-size: 11px; font-weight: 500;">${typeInfo.name}</span>
-                    </div>
-                `;
-            }).join('');
-
-            const fourthColumnHtml = fourthColumn.map((record, index) => {
-                const typeInfo = getTypeInfo(record.type);
-                const displayIndex = itemsPerColumn * 3 + index + 1;
-                return `
-                    <div style="display: flex; align-items: center; padding: 4px 8px; border-radius: 4px; background: ${typeInfo.bg}; margin: 2px 0;">
-                        <span style="width: 25px; color: var(--text-muted); font-size: 11px;">${displayIndex}.</span>
-                        <a class="internal-link" data-href="${record.date}" href="${record.date}" style="color: var(--text-normal); text-decoration: none; font-family: monospace; font-size: 12px;">${record.date}</a>
-                        <span style="margin: 0 8px; color: var(--text-muted); font-size: 12px;">周${record.dayOfWeek}</span>
-                        <span style="padding: 2px 8px; border-radius: 3px; background: ${typeInfo.color}; color: white; font-size: 11px; font-weight: 500;">${typeInfo.name}</span>
-                    </div>
-                `;
-            }).join('');
-
+        if (listRecords.length > 0) {
+            const itemsPerColumn = Math.ceil(listRecords.length / 4);
+            const columns = [
+                listRecords.slice(0, itemsPerColumn),
+                listRecords.slice(itemsPerColumn, itemsPerColumn * 2),
+                listRecords.slice(itemsPerColumn * 2, itemsPerColumn * 3),
+                listRecords.slice(itemsPerColumn * 3),
+            ];
+            const columnsHtml = columns
+                .map((col, ci) => {
+                    const offset = itemsPerColumn * ci;
+                    const inner = col
+                        .map((record, index) => renderRecord(record, offset + index + 1))
+                        .join('');
+                    return `<div style="flex: 1;">${inner}</div>`;
+                })
+                .join('');
             holidayListHtml = `
                 <div style="display: flex; gap: 10px;">
-                    <div style="flex: 1;">${firstColumnHtml}</div>
-                    <div style="flex: 1;">${secondColumnHtml}</div>
-                    <div style="flex: 1;">${thirdColumnHtml}</div>
-                    <div style="flex: 1;">${fourthColumnHtml}</div>
+                    ${columnsHtml}
                 </div>
             `;
         } else {
@@ -580,8 +631,12 @@ modified_at: 2026-03-03
         refreshBtn.style.cssText = 'padding:2px 10px; border-radius:4px; cursor:pointer; border:1px solid var(--background-modifier-border); background:var(--background-secondary); color:var(--text-normal); font-size:0.85em;';
         refreshBtn.addEventListener('click', async () => {
             clearCache();
+            // 强制重新执行本 dataviewjs 块：rebuildView 重建视图 → 重跑脚本 → dv.io.load 读最新 请假计划.md
+            const leaf = (app.workspace.getMostRecentLeaf && app.workspace.getMostRecentLeaf())
+                || app.workspace.activeLeaf;
+            if (leaf && typeof leaf.rebuildView === 'function') { leaf.rebuildView(); return; }
             const file = app.workspace.getActiveFile();
-            await app.workspace.activeLeaf.openFile(file, { active: true });
+            if (leaf && file) await leaf.openFile(file, { active: true });
         });
 
         // Create chart HTML
@@ -601,6 +656,9 @@ modified_at: 2026-03-03
                     
                     <!-- Holiday Main line -->
                     <path d="${pathString}" stroke="#d65d0e" stroke-width="3" fill="none"/>
+                    
+                    <!-- Planned PTO projection (dashed) -->
+                    ${plannedMainTotal > 0 ? `<path d="${projPathString}" stroke="#d65d0e" stroke-width="2.5" fill="none" stroke-dasharray="6,4" opacity="0.85"/>` : ''}
                     
                     <!-- Annual leave limit line -->
                     ${limitLine}
@@ -657,6 +715,10 @@ modified_at: 2026-03-03
                     <div style="width: 10px; height: 10px; border-radius: 50%; background: #ff6b6b; border: 2px solid #e74c3c;"></div>
                     <span style="color: var(--text-normal);">Sick Leave</span>
                 </div>
+                <div style="display: flex; align-items: center; gap: 4px;">
+                    <span style="width: 16px; border-top: 2.5px dashed #d65d0e; display: inline-block;"></span>
+                    <span style="color: var(--text-normal);">计划 PTO</span>
+                </div>
             </div>
             
             <!-- Summary Stats -->
@@ -670,7 +732,7 @@ modified_at: 2026-03-03
             <!-- Holiday List -->
             <details style="margin-top: 15px; border: 1px solid var(--background-modifier-border); border-radius: 6px; padding: 10px;">
                 <summary style="cursor: pointer; font-weight: 600; color: var(--text-normal); padding: 5px;">
-                    📅 休假明细 (${holidayRecords.length} 条记录)
+                    📅 休假明细 (${holidayRecords.length} 实际${plannedRecords.length > 0 ? ` + ${plannedRecords.length} 计划` : ''})
                 </summary>
                 <div style="margin-top: 10px; max-height: 300px; overflow-y: auto;">
                     ${holidayListHtml}
