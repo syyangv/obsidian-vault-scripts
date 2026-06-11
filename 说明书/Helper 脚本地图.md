@@ -11,12 +11,14 @@ modified_at: 2026-06-06
 
 ## 1. 文件夹一览
 
+> ✅ **2026-06-11 已重组**：所有 QuickAdd 脚本已集中到 `quickadd-scripts/`（15 个从 `utils/` 迁入 + 早前 `syncCssclass` 从 `meta-bind/`）。`utils/` 现仅余 dataviewjs widget + Templater 函数 + `holidays/` 数据。`读书笔记-20260408.js` 已改名 `qaNewBook.js`。遗留：`任务视图-20260123` 是 `organizeQuickCapture` 宏里的**坏链**（文件已丢，未处理）。
+
 | 文件夹 | 文件数 | 是什么 | 关键文件 |
 |---|---|---|---|
 | `Templates/` | 20 | 笔记模板（嵌入 widget 的「枢纽」）| Daily/Weekly/Monthly Note、课程、电影/电视剧/综艺 等 |
-| `utils/` | ~108 | **大杂烩**：dataviewjs widget + QuickAdd 脚本 + Templater 函数 + JS Engine 动作 + `holidays/` 数据 + 文档 | 见 [[_INDEX]] |
-| `quickadd-scripts/` | 5 | QuickAdd 脚本（部分）| `tv-sync.js`、`editWeightField.js` |
-| `meta-bind/` | 3 | JS Engine 动作 + 1 个错放的 QuickAdd 脚本 | `addImportantDate.js`、`syncCssclassEventsToYearlyGlance.js` |
+| `utils/` | ~93 | dataviewjs widget + Templater 函数（`tickGrid` 等，钉死在此）+ `holidays/` 数据 + 文档（**QuickAdd 脚本已迁出**）| 见 [[_INDEX]] |
+| `quickadd-scripts/` | 19 | **全部 QuickAdd 脚本**（集中地）| `tv-sync.js`、`monthlyAmountEdit.js`、`qaNewBook.js` 等 |
+| `meta-bind/` | 2 | JS Engine 动作 | `addImportantDate.js` |
 | `lib/` | 1 | CustomJS 共享类 | `DailyLog.js` |
 | `Banners/` | 1 | banner 图定义（pretty-properties）| `banners-heidelberg.md` |
 | `说明书/` | 11 | 本文档区（Obsidian 使用手册 MOC）| `说明书.md` + Dataview/Tracker/… |
@@ -28,10 +30,10 @@ modified_at: 2026-06-06
 | 用途类型 | 如何被调用 | Anchor（移动成本）| 文件（跨文件夹）|
 |---|---|---|---|
 | **dataviewjs widget** (`.md`) | `![[name]]` 嵌入 | 短路径 basename → **移动 OK，改名断** | 全在 `utils/`（~50）|
-| **QuickAdd 脚本** (`module.exports`) | QuickAdd macro | **`quickadd/data.json` 里写死完整路径** → 移动须改 data.json | `utils/`(15) + `quickadd-scripts/`(2) + `meta-bind/`(1 `syncCssclass`) |
+| **QuickAdd 脚本** (`module.exports`) | QuickAdd macro | **`quickadd/data.json` 里写死完整路径** → 移动须改 data.json | **全在 `quickadd-scripts/`(19)**（2026-06-11 集中完毕）|
 | **Templater 函数** (`tp.user.*`) | `tp.user.tickGrid` | **`user_scripts_folder = Helper/utils`** → 挪出 utils 即断 | `utils/tickGrid.js`（**钉死在 utils**）|
 | **CustomJS 类** | `window.customJS.DailyLog` | **`jsFolder = Helper/lib`** → 钉死在 lib | `lib/DailyLog.js` |
-| **JS Engine 动作** | 笔记按钮里 `engine` 调用，按路径 | 调用方笔记里的路径串 | `meta-bind/addImportantDate.js`（从 `重要日期.md`）、`utils/monthlyAmountEdit.js`（从 `Monthly Note.md` + 月计划）|
+| **JS Engine 动作** | 笔记按钮里 `engine` 调用，按路径 | 调用方笔记里的路径串 | `meta-bind/addImportantDate.js`（从 `重要日期.md`）、`quickadd-scripts/monthlyAmountEdit.js`（从 `Monthly Note.md` + 月计划，路径已同步更新）|
 | **数据 / 文档** | 被读取 / 导航 | basename / MOC 链接 | `utils/holidays/`、`Banners/`、各文件夹笔记 |
 
 ## 3. 跨文件夹依赖图

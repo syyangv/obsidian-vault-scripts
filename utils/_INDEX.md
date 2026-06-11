@@ -10,6 +10,9 @@ modified_at: 2026-06-06
 
 # Helper/utils — Snippet & Script Index
 
+> [!done] 2026-06-11 — QuickAdd 脚本已迁出
+> 本文档里所有 `js-quickadd` 类型的脚本已集中到 **`Helper/quickadd-scripts/`**（`data.json` 路径已同步；`读书笔记-20260408.js`→`qaNewBook.js`）。下方条目的路径标注为迁移前状态，查实际位置以 `quickadd-scripts/` 为准。`utils/` 现仅余 `md-embed` widget 与 `js-templater` 函数。完整总览见 [[Helper 脚本地图]]。
+
 > [!warning] 不要随意移动 / 重命名本文件夹内的文件
 > - **`.md` 嵌入片段**：通过 `![[文件名]]` 引用（短路径匹配 basename），移动子文件夹不会断，但**改名会断**所有引用。
 > - **`.js` QuickAdd 脚本**：QuickAdd 在 `.obsidian/plugins/quickadd/data.json` 里用**完整路径**绑定（如 `Helper/utils/qcTask.js`），移动或改名都会断，必须同步改配置。
