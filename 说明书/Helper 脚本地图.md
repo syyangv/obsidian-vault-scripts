@@ -11,13 +11,13 @@ modified_at: 2026-06-06
 
 ## 1. 文件夹一览
 
-> ✅ **2026-06-11 已重组**：所有 QuickAdd 脚本已集中到 `quickadd-scripts/`（15 个从 `utils/` 迁入 + 早前 `syncCssclass` 从 `meta-bind/`）。`utils/` 现仅余 dataviewjs widget + Templater 函数 + `holidays/` 数据。`读书笔记-20260408.js` 已改名 `qaNewBook.js`。遗留：`任务视图-20260123` 是 `organizeQuickCapture` 宏里的**坏链**（文件已丢，未处理）。
+> ✅ **2026-06-11 已重组**：所有 QuickAdd 脚本已集中到 `quickadd-scripts/`（15 个从 `utils/` 迁入 + 早前 `syncCssclass` 从 `meta-bind/`）。`读书笔记-20260408.js` 已改名 `qaNewBook.js`。`subscriptionGantt.js`（订阅 Gantt dv.view widget）已从 `个人整理/日常工具/` 归入 `utils/` 并对账重建为权威源（参数化 include/exclude/barScale）。已删：`organizeQuickCapture` 坏宏 + `任务视图-20260123` 坏链 + `editWeightField` 重复孤儿。**根因修复**：`.js` 被改名为 `<活动笔记>-<日期>.js` 是 `obsidian-paste-image-rename` 插件（`handleAllAttachments` + 空 `excludeExtensionPattern`）所致，已加排除 `js|mjs|cjs|ts|jsx|tsx|css|json|html`。`utils/` 现仅余 dataviewjs widget + Templater 函数 + `holidays/` 数据。
 
 | 文件夹 | 文件数 | 是什么 | 关键文件 |
 |---|---|---|---|
 | `Templates/` | 20 | 笔记模板（嵌入 widget 的「枢纽」）| Daily/Weekly/Monthly Note、课程、电影/电视剧/综艺 等 |
-| `utils/` | ~93 | dataviewjs widget + Templater 函数（`tickGrid` 等，钉死在此）+ `holidays/` 数据 + 文档（**QuickAdd 脚本已迁出**）| 见 [[_INDEX]] |
-| `quickadd-scripts/` | 19 | **全部 QuickAdd 脚本**（集中地）| `tv-sync.js`、`monthlyAmountEdit.js`、`qaNewBook.js` 等 |
+| `utils/` | ~93 | dataviewjs widget(`.md`) + Templater 函数(`.js`，钉死在此) + `holidays/` 数据 + 文档（**QuickAdd 脚本已迁出**）| `tickGrid.js`、`subscriptionGantt.js`、`subscriptionTimeline.md`，见 [[_INDEX]] |
+| `quickadd-scripts/` | 18 | **全部 QuickAdd 脚本**（集中地）| `tv-sync.js`、`monthlyAmountEdit.js`、`qaNewBook.js` 等 |
 | `meta-bind/` | 2 | JS Engine 动作 | `addImportantDate.js` |
 | `lib/` | 1 | CustomJS 共享类 | `DailyLog.js` |
 | `Banners/` | 1 | banner 图定义（pretty-properties）| `banners-heidelberg.md` |

@@ -216,3 +216,6 @@ module.exports = async (params) => {
 - [x] 用户关闭 Obsidian（Claude 才能安全改 `data.json`）。 ✍️ 2026-06-04
 - [x] CustomJS 已装并启用（Phase 2/3 前）。 ✍️ 2026-06-04 ✅ 2026-06-05
 - [ ] Google Drive 同步已静默。 ✍️ 2026-06-04
+
+## 待办 Backlog
+- [x] ✅ 2026-06-11 把 `个人整理/日常工具/` 的 widget 脚本归整进 `Helper/`（**等订阅图表的在途工作收尾后再做**）。规划：较新的 `个人整理/日常工具/日常工具-20260609.js`(14219B) 为准 → 重命名为 `Helper/utils/subscriptionGantt.js`（widget 归 utils/）；`subscriptionTimeline.js` 同样移入；两个 standalone .js 都比笔记里的 INLINE 副本旧约 25%，须以渲染中的 inline 块对账后再定稿。当前 `Helper/utils/日常工具-20260609.js`(15191B, 旧) 是反向移动撤回后留下的过期副本，一并清理。详见 memory `project-helper-quickadd-consolidation`。 #Project/生活整理 ✍️ 2026-06-11

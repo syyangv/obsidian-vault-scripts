@@ -11,7 +11,7 @@ modified_at: 2026-06-06
 # Helper/utils — Snippet & Script Index
 
 > [!done] 2026-06-11 — QuickAdd 脚本已迁出
-> 本文档里所有 `js-quickadd` 类型的脚本已集中到 **`Helper/quickadd-scripts/`**（`data.json` 路径已同步；`读书笔记-20260408.js`→`qaNewBook.js`）。下方条目的路径标注为迁移前状态，查实际位置以 `quickadd-scripts/` 为准。`utils/` 现仅余 `md-embed` widget 与 `js-templater` 函数。完整总览见 [[Helper 脚本地图]]。
+> 本文档里所有 `js-quickadd` 类型的脚本已集中到 **`Helper/quickadd-scripts/`**（`data.json` 路径已同步；`读书笔记-20260408.js`→`qaNewBook.js`）。下方条目的路径标注为迁移前状态，查实际位置以 `quickadd-scripts/` 为准。`utils/` 现仅余 `md-embed` widget 与 `js-templater` 函数，外加新归入的 **`subscriptionGantt.js`**（订阅/兴趣班花费 Gantt 的 dv.view 权威源，参数 `include`/`exclude`/`barScale`；`订阅花费-Gantt.md`、`兴趣班花费-Gantt.md` 仍用 INLINE 副本渲染）与 **`subscriptionTimeline.md`**。完整总览见 [[Helper 脚本地图]]。
 
 > [!warning] 不要随意移动 / 重命名本文件夹内的文件
 > - **`.md` 嵌入片段**：通过 `![[文件名]]` 引用（短路径匹配 basename），移动子文件夹不会断，但**改名会断**所有引用。
