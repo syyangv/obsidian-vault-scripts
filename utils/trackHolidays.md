@@ -369,6 +369,8 @@ modified_at: 2026-06-08
         let plannedPtoTotal = 0;       // 仅 PTO（年度额度摘要）
         let plannedMainTotal = 0;      // PTO + 公共假期（决定是否画虚线投影）
         const plannedRecords = []; // 未来计划（PTO + 病假 + 公共假期），用于明细列表（边框样式）
+        // 自带星期计算：getDayOfWeek 定义在 cache-miss else 块内，命中缓存时不存在 → 这里独立实现，避免 ReferenceError 中断解析
+        const __dow = (s) => { const p = String(s).split('-'); if (p.length !== 3) return '?'; const d = new Date(+p[0], +p[1] - 1, +p[2]); return isNaN(d.getTime()) ? '?' : ['日','一','二','三','四','五','六'][d.getDay()]; };
         try {
             // adapter.read = 直读磁盘，绕过 Obsidian cachedRead（外部修改的文件 cachedRead 会返回旧内容）
             const planRaw = await app.vault.adapter.read("个人整理/请假计划.md");
@@ -382,19 +384,20 @@ modified_at: 2026-06-08
                     const isPublic = cells.some(c => c === '公共假期' || c.toLowerCase() === 'public');
                     if (!isPto && !isSick && !isPublic) continue;
                     const mon = dateCell.substring(0, 7);
+                    const note = cells.find(c => c !== dateCell && !/^(pto|病假|sick|公共假期|public)$/i.test(c)) || '';
                     if (isPto) {
                         plannedMainByMonth[mon] = (plannedMainByMonth[mon] || 0) + 1;
                         plannedPtoTotal++;
                         plannedMainTotal++;
-                        plannedRecords.push({ date: dateCell, dayOfWeek: getDayOfWeek(dateCell), type: 'pto', planned: true });
+                        plannedRecords.push({ date: dateCell, dayOfWeek: __dow(dateCell), type: 'pto', planned: true, note });
                     }
                     if (isPublic) {
                         plannedMainByMonth[mon] = (plannedMainByMonth[mon] || 0) + 1;
                         plannedMainTotal++;
-                        plannedRecords.push({ date: dateCell, dayOfWeek: getDayOfWeek(dateCell), type: 'public', planned: true });
+                        plannedRecords.push({ date: dateCell, dayOfWeek: __dow(dateCell), type: 'public', planned: true, note });
                     }
                     if (isSick) {
-                        plannedRecords.push({ date: dateCell, dayOfWeek: getDayOfWeek(dateCell), type: 'sick', planned: true });
+                        plannedRecords.push({ date: dateCell, dayOfWeek: __dow(dateCell), type: 'sick', planned: true, note });
                     }
                 }
             }
@@ -579,15 +582,12 @@ modified_at: 2026-06-08
             const boxStyle = record.planned
                 ? `background: transparent; border: 1px solid ${typeInfo.color};`
                 : `background: ${typeInfo.bg}; border: 1px solid transparent;`;
-            const plannedTag = record.planned
-                ? ` <span style="color: var(--text-faint); font-size: 10px;">(计划)</span>`
-                : '';
             return `
                 <div style="display: flex; align-items: center; padding: 4px 8px; border-radius: 4px; ${boxStyle} margin: 2px 0;">
                     <span style="width: 25px; color: var(--text-muted); font-size: 11px;">${displayIndex}.</span>
                     <a class="internal-link" data-href="${record.date}" href="${record.date}" style="color: var(--text-normal); text-decoration: none; font-family: monospace; font-size: 12px;">${record.date}</a>
                     <span style="margin: 0 8px; color: var(--text-muted); font-size: 12px;">周${record.dayOfWeek}</span>
-                    <span style="padding: 2px 8px; border-radius: 3px; background: ${typeInfo.color}; color: white; font-size: 11px; font-weight: 500;">${typeInfo.name}</span>${plannedTag}
+                    <span style="padding: 2px 8px; border-radius: 3px; background: ${typeInfo.color}; color: white; font-size: 11px; font-weight: 500;">${typeInfo.name}</span>${record.note ? ` <span style="margin-left:6px; color: var(--text-muted); font-size: 11px;">${record.note}</span>` : ''}
                 </div>
             `;
         };
