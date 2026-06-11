@@ -42,8 +42,15 @@ try {
     const rowNames = {
         "UnitedQuest_uber": "Uber",
         "UnitedQuest_travelbank": "Travel Bank",
-        "UnitedQuest_bagcheck": "行李托运"
+        "UnitedQuest_bagcheck": "行李托运",
+        "UnitedQuest_flight_dollar_value": "Flight Points Value"
     };
+
+    // Special categories that don't show percentages
+    const nonPercentageCategories = ["UnitedQuest_flight_dollar_value"];
+
+    // Categories where the available credit should match the used amount
+    const mirrorUsedCategories = ["UnitedQuest_bagcheck"];
 
     // Auto-convert camelCase to Title Case
     function camelToTitle(camelCase) {
@@ -54,6 +61,22 @@ try {
         name = name.replace(/([A-Z])/g, ' $1');
         name = name.charAt(0).toUpperCase() + name.slice(1);
         return name.trim();
+    }
+
+    function parseRewardAmount(value) {
+        if (typeof value === 'number' && !isNaN(value)) {
+            return value;
+        }
+        if (typeof value === 'string') {
+            const normalized = value.replace(/[$,]/g, '').trim();
+            if (normalized !== '') {
+                const parsed = Number(normalized);
+                if (!isNaN(parsed)) {
+                    return parsed;
+                }
+            }
+        }
+        return null;
     }
 
     // Function to create progress bar (Sims needs bar style)
@@ -136,9 +159,9 @@ try {
         
         for (let key in frontmatter) {
             if (key && key.startsWith(prefix)) {
-                const value = frontmatter[key];
+                const value = parseRewardAmount(frontmatter[key]);
                 
-                if (typeof value === 'number' && !isNaN(value)) {
+                if (value !== null) {
                     if (!yearTotals[key]) {
                         yearTotals[key] = 0;
                     }
@@ -171,9 +194,9 @@ try {
         
         for (let key in frontmatter) {
             if (key && key.startsWith(prefix)) {
-                const value = frontmatter[key];
+                const value = parseRewardAmount(frontmatter[key]);
                 
-                if (typeof value === 'number' && !isNaN(value)) {
+                if (value !== null) {
                     if (!creditTotals[key]) {
                         creditTotals[key] = 0;
                     }
@@ -196,11 +219,18 @@ try {
         .sort()
         .map(key => {
             const displayName = rowNames[key] || camelToTitle(key);
-            const expense = Math.round(yearTotals[key] || 0);
             const credit = Math.round(creditTotals[key] || 0);
-            const net = expense - credit;
+            const expense = mirrorUsedCategories.includes(key)
+                ? credit
+                : Math.round(yearTotals[key] || 0);
+            // For non-percentage categories, set net to 0
+            const net = nonPercentageCategories.includes(key) ? 0 : expense - credit;
             const percentage = expense > 0 ? (credit / expense) * 100 : 0;
-            const progressBar = createProgressBar(percentage);
+
+            // Check if this is a special non-percentage category
+            const progressBar = nonPercentageCategories.includes(key)
+                ? `$${credit}`
+                : createProgressBar(percentage);
             
             return [displayName, expense, credit, net, progressBar];
         });
