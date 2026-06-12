@@ -1,14 +1,24 @@
 ---
-modified_at: 2026-06-08
+modified_at: 2026-06-12
 ---
 
 ```dataviewjs
 (async () => {
-    // ===== PREVENT MULTIPLE SIMULTANEOUS EXECUTIONS =====
-    const actualCurrentFile = app.workspace.getActiveFile();
+    // ===== 解析宿主年度笔记（标题含 4 位年份）=====
+    // 当前活动文件若是年度笔记 → 用它并记住；否则回退到上次记住的年度笔记，
+    // 这样聚焦 yearly-glance 日历视图(无 active file)时也能继续渲染。
+    const isYearNote = (f) => !!f && /\d{4}/.test(f.name || "");
+    const _active = app.workspace.getActiveFile();
+    if (isYearNote(_active)) window.__trackHolidaysYearNote = _active.path;
+
+    let actualCurrentFile = isYearNote(_active) ? _active : null;
+    if (!actualCurrentFile && window.__trackHolidaysYearNote) {
+        actualCurrentFile = app.vault.getAbstractFileByPath(window.__trackHolidaysYearNote);
+    }
+    if (!actualCurrentFile) actualCurrentFile = _active; // 退路：任意活动文件（保留原行为）
 
     if (!actualCurrentFile) {
-        dv.paragraph("⚠️ No active file detected.");
+        dv.paragraph("⚠️ 请先打开年度笔记（如 2026）以加载休假统计。");
         return;
     }
 
@@ -88,8 +98,9 @@ modified_at: 2026-06-08
             } catch (e) {}
         };
 
+        const PREV_CACHE_KEY = 'track-holidays-prev-v1';
         const clearCache = () => {
-            try { localStorage.removeItem(CACHE_KEY); } catch (e) {}
+            try { localStorage.removeItem(CACHE_KEY); localStorage.removeItem(PREV_CACHE_KEY); } catch (e) {}
         };
 
         // Initialize monthly data structure for the specified year
@@ -317,6 +328,92 @@ modified_at: 2026-06-08
             });
         }
 
+        // ===== 去年同期轨迹 (Previous Year Trajectory) =====
+        const prevYear = String(parseInt(year) - 1);
+        let prevYearCumData = null;
+
+        const _ss = v => (v == null ? '' : String(v).trim());
+        const _sa = v => (v == null ? [] : Array.isArray(v) ? v : [v]);
+        const _ht = (page) => {
+            const s = new Set();
+            try {
+                if (page && page.假期) {
+                    _sa(page.假期).forEach(v => {
+                        const sv = _ss(v);
+                        if (sv === 'PTO' || sv === '放假/PTO') s.add('pto');
+                        else if (sv === '公共假期' || sv === '放假/公共假期') s.add('public');
+                        else if (sv === '病假' || sv === '放假/病假') s.add('sick');
+                    });
+                }
+                if (page && page.file && page.file.tags && Array.isArray(page.file.tags)) {
+                    page.file.tags.forEach(t => {
+                        const st = _ss(t);
+                        if (st === '#放假/PTO' || st === '放假/PTO') s.add('pto');
+                        else if (st === '#放假/公共假期' || st === '放假/公共假期') s.add('public');
+                        else if (st === '#放假/病假' || st === '放假/病假') s.add('sick');
+                    });
+                }
+            } catch (e) {}
+            return s;
+        };
+
+        let prevYearSickCumData = null;
+
+        const loadPrevCache = () => {
+            try {
+                const raw = localStorage.getItem(PREV_CACHE_KEY);
+                if (!raw) return null;
+                const data = JSON.parse(raw);
+                if (data.year !== prevYear) return null;
+                if ((Date.now() - data.timestamp) / 60000 > 1440) return null;
+                return { cumData: data.cumData, sickCumData: data.sickCumData || null };
+            } catch (e) { return null; }
+        };
+
+        const prevCached = loadPrevCache();
+        if (prevCached) {
+            prevYearCumData = prevCached.cumData;
+            prevYearSickCumData = prevCached.sickCumData;
+        }
+        if (!prevYearCumData) {
+            const prevMonths = Array.from({length: 12}, (_, i) =>
+                `${prevYear}-${(i + 1).toString().padStart(2, '0')}`);
+            const prevMD = {};
+            const prevSickMD = {};
+            prevMonths.forEach(m => { prevMD[m] = 0; prevSickMD[m] = 0; });
+            try {
+                const pp = dv.pages('"日记"')
+                    .where(p => p && p.file && p.file.name &&
+                           typeof p.file.name === 'string' &&
+                           p.file.name.startsWith(prevYear + '-'));
+                for (let page of pp) {
+                    try {
+                        if (!page?.file?.name) continue;
+                        const fn = _ss(page.file.name);
+                        if (fn.length < 10) continue;
+                        const ht = _ht(page);
+                        const mon = fn.substring(0, 7);
+                        if (prevMD[mon] === undefined) continue;
+                        if (ht.has('pto')) prevMD[mon]++;
+                        if (ht.has('public')) prevMD[mon]++;
+                        if (ht.has('sick')) prevSickMD[mon]++;
+                    } catch (e) { continue; }
+                }
+            } catch (e) {}
+            let cum = 0;
+            prevYearCumData = prevMonths.map(m => { cum += (prevMD[m] || 0); return cum; });
+            let sickCum = 0;
+            prevYearSickCumData = prevMonths.map(m => { sickCum += (prevSickMD[m] || 0); return sickCum; });
+            try {
+                localStorage.setItem(PREV_CACHE_KEY, JSON.stringify({
+                    timestamp: Date.now(), year: prevYear,
+                    cumData: prevYearCumData, sickCumData: prevYearSickCumData
+                }));
+            } catch (e) {}
+        }
+        const prevYearMax = prevYearCumData ? Math.max(...prevYearCumData) : 0;
+        const prevYearSickMax = prevYearSickCumData ? Math.max(...prevYearSickCumData) : 0;
+
         // Calculate cumulative data with type information
         let cumulative = 0;
         const chartData = months.map(month => {
@@ -419,10 +516,12 @@ modified_at: 2026-06-08
             projectedTotal || 0,
             ...chartData.map(d => d.cumulative || 0), 
             annualLeaveLimit || 1, 
+            prevYearMax || 0,
             5
         );
         const maxSickCumulative = Math.max(
             ...sickChartData.map(d => d.cumulative || 0), 
+            prevYearSickMax || 0,
             1
         );
 
@@ -469,6 +568,16 @@ modified_at: 2026-06-08
             .map((c, i) => `${i === 0 ? 'M' : 'L'} ${c.x} ${c.y}`)
             .join(' ');
 
+        // 去年同期轨迹坐标（点线）
+        const prevYearPathCoords = prevYearCumData ? prevYearCumData.map((cum, i) => {
+            const x = padding + (i / Math.max(prevYearCumData.length - 1, 1)) * (chartWidth - 2 * padding);
+            const y = chartHeight - padding - (cum / maxCumulative) * (chartHeight - 2 * padding);
+            return { x: x || padding, y: isNaN(y) ? (chartHeight - padding) : y, cum };
+        }) : [];
+        const prevYearPathString = prevYearPathCoords
+            .map((c, i) => `${i === 0 ? 'M' : 'L'} ${c.x} ${c.y}`)
+            .join(' ');
+
         // Calculate SVG path coordinates for sick leave chart
         const sickPathCoords = sickChartData.map((d, i) => {
             const x = padding + (i / Math.max(sickChartData.length - 1, 1)) * (sickChartWidth - 2 * padding);
@@ -486,6 +595,15 @@ modified_at: 2026-06-08
             .filter(coord => !isNaN(coord.x) && !isNaN(coord.y))
             .map((coord, i) => `${i === 0 ? 'M' : 'L'} ${coord.x + chartWidth} ${coord.y}`)
             .join(' ') || `M ${chartWidth + padding} ${sickChartHeight - padding}`;
+
+        // 去年同期病假轨迹坐标（点线）
+        const prevYearSickPathString = prevYearSickCumData ? prevYearSickCumData.map((cum, i) => {
+            const x = padding + (i / Math.max(prevYearSickCumData.length - 1, 1)) * (sickChartWidth - 2 * padding);
+            const y = sickChartHeight - padding - (cum / maxSickCumulative) * (sickChartHeight - 2 * padding);
+            const px = (x || padding) + chartWidth;
+            const py = isNaN(y) ? (sickChartHeight - padding) : y;
+            return `${i === 0 ? 'M' : 'L'} ${px} ${py}`;
+        }).join(' ') : '';
 
         // Build grid lines HTML
         const gridLines = [0, 1, 2, 3, 4].map(i => {
@@ -658,6 +776,9 @@ modified_at: 2026-06-08
                     <!-- Holiday Main line -->
                     <path d="${pathString}" stroke="#d65d0e" stroke-width="3" fill="none"/>
                     
+                    <!-- Previous year trajectory (dotted) -->
+                    ${prevYearPathString ? `<path d="${prevYearPathString}" stroke="#888" stroke-width="2" fill="none" stroke-dasharray="3,5" opacity="0.55"/>` : ''}
+                    
                     <!-- Planned PTO projection (dashed) -->
                     ${plannedMainTotal > 0 ? `<path d="${projPathString}" stroke="#d65d0e" stroke-width="2.5" fill="none" stroke-dasharray="6,4" opacity="0.85"/>` : ''}
                     
@@ -679,6 +800,9 @@ modified_at: 2026-06-08
                     <!-- Sick Chart Axes -->
                     <line x1="${chartWidth + padding}" y1="${padding}" x2="${chartWidth + padding}" y2="${sickChartHeight - padding}" stroke="var(--text-muted)" stroke-width="2"/>
                     <line x1="${chartWidth + padding}" y1="${sickChartHeight - padding}" x2="${chartWidth + sickChartWidth - padding}" y2="${sickChartHeight - padding}" stroke="var(--text-muted)" stroke-width="2"/>
+                    
+                    <!-- Previous year sick leave trajectory (dotted) -->
+                    ${prevYearSickPathString ? `<path d="${prevYearSickPathString}" stroke="#888" stroke-width="2" fill="none" stroke-dasharray="3,5" opacity="0.55"/>` : ''}
                     
                     <!-- Sick leave line -->
                     <path d="${sickPathString}" stroke="#e74c3c" stroke-width="3" fill="none"/>
@@ -719,6 +843,10 @@ modified_at: 2026-06-08
                 <div style="display: flex; align-items: center; gap: 4px;">
                     <span style="width: 16px; border-top: 2.5px dashed #d65d0e; display: inline-block;"></span>
                     <span style="color: var(--text-normal);">计划 PTO</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 4px;">
+                    <span style="width: 16px; border-top: 2px dotted #888; display: inline-block;"></span>
+                    <span style="color: var(--text-normal);">${prevYear}</span>
                 </div>
             </div>
             
