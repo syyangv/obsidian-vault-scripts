@@ -375,7 +375,7 @@ modified_at: 2026-06-12
             prevYearCumData = prevCached.cumData;
             prevYearSickCumData = prevCached.sickCumData;
         }
-        if (!prevYearCumData) {
+        if (!prevYearCumData || !prevYearSickCumData) {
             const prevMonths = Array.from({length: 12}, (_, i) =>
                 `${prevYear}-${(i + 1).toString().padStart(2, '0')}`);
             const prevMD = {};
