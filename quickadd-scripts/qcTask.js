@@ -4,17 +4,20 @@ module.exports = async (params) => {
     const taskText = await quickAddApi.inputPrompt("Task description");
     if (!taskText) return;
 
-    const tagOptions = [
+    const staticTags = [
         { label: "No tag", value: "" },
         { label: "📺 TV/Watch", value: "#📺" },
         { label: "🎤 Karaoke", value: "#🎤" },
         { label: "起起", value: "#起起" },
-        { label: "Project/日常任务", value: "#Project/日常任务" },
-        { label: "Project/生活整理", value: "#Project/生活整理" },
-        { label: "Project/Styling", value: "#Project/Styling" },
-        { label: "Project/CS", value: "#Project/CS" },
-        { label: "Project/LLM", value: "#Project/LLM" },
     ];
+
+    const allTags = Object.keys(app.metadataCache.getTags());
+    const projectTags = allTags
+        .filter(t => t.startsWith("#Project/"))
+        .sort()
+        .map(t => ({ label: t.slice(1), value: t }));
+
+    const tagOptions = [...staticTags, ...projectTags];
 
     const selectedTag = await quickAddApi.suggester(
         tagOptions.map(t => t.label),
