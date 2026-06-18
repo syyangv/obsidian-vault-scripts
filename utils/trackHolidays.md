@@ -1,5 +1,5 @@
 ---
-modified_at: 2026-06-12
+modified_at: 2026-06-18
 ---
 
 ```dataviewjs
@@ -41,7 +41,34 @@ modified_at: 2026-06-12
     window[containerId + '_running'] = true;
 
     try {
-        
+        // Load shared config from HolidayConfig.md
+        const _hcfgPage = dv.page("Helper/config/HolidayConfig");
+        const hcfg = (_hcfgPage && _hcfgPage.file && _hcfgPage.file.frontmatter) ? _hcfgPage.file.frontmatter : null;
+        const _fmField = (hcfg && hcfg.fmField) || '假期';
+        const _planFile = (hcfg && hcfg.planFile) || '个人整理/请假计划.md';
+        const _lineClr = (hcfg && hcfg.lineColor) || '#d65d0e';
+        const _mixedDot = (hcfg && hcfg.mixedDot) || { color: '#27ae60', stroke: '#229954' };
+        const _noHolDot = (hcfg && hcfg.noHolidayDot) || { color: 'white', stroke: '#d65d0e' };
+        const _sickCfg = (hcfg && hcfg.types && hcfg.types.sick) || { name: '病假', color: '#e74c3c', bg: '#e74c3c20', dotColor: '#ff6b6b', dotStroke: '#e74c3c', stroke: '#e74c3c' };
+        const _ptoCfg = (hcfg && hcfg.types && hcfg.types.pto) || { name: 'PTO', color: '#3498db', bg: '#3498db20', dotColor: '#3498db', dotStroke: '#2980b9' };
+        const _pubCfg = (hcfg && hcfg.types && hcfg.types.public) || { name: '公共假期', color: '#f39c12', bg: '#f39c1220', dotColor: '#f1c40f', dotStroke: '#f39c12' };
+
+        // Build match functions from config
+        const _matchType = (val, typeKey) => {
+            if (hcfg && hcfg.types && hcfg.types[typeKey]) {
+                const tc = hcfg.types[typeKey];
+                if (tc.fmValues && tc.fmValues.includes(val)) return true;
+            }
+            return false;
+        };
+        const _matchTag = (tag, typeKey) => {
+            if (hcfg && hcfg.types && hcfg.types[typeKey]) {
+                const tc = hcfg.types[typeKey];
+                if (tc.tagValues && (tc.tagValues.includes(tag) || tc.tagValues.includes('#' + tag) || tc.tagValues.includes(tag.replace(/^#/, '')))) return true;
+            }
+            return false;
+        };
+
         let actualCurrentPage;
         try {
             actualCurrentPage = dv.page(actualCurrentFile.path);
@@ -111,12 +138,14 @@ modified_at: 2026-06-12
 
         // Helper function to get type display name and color (used in both cached and non-cached paths)
         function getTypeInfo(type) {
-            switch(type) {
-                case 'pto': return { name: 'PTO', color: '#3498db', bg: '#3498db20' };
-                case 'public': return { name: '公共假期', color: '#f39c12', bg: '#f39c1220' };
-                case 'sick': return { name: '病假', color: '#e74c3c', bg: '#e74c3c20' };
-                default: return { name: type, color: '#888', bg: '#88888820' };
+            if (type === 'pto') return { name: _ptoCfg.name, color: _ptoCfg.color, bg: _ptoCfg.bg };
+            if (type === 'public') return { name: _pubCfg.name, color: _pubCfg.color, bg: _pubCfg.bg };
+            if (type === 'sick') return { name: _sickCfg.name, color: _sickCfg.color, bg: _sickCfg.bg };
+            if (hcfg && hcfg.types && hcfg.types[type]) {
+                const tc = hcfg.types[type];
+                return { name: tc.name || type, color: tc.color || '#888', bg: tc.bg || '#88888820' };
             }
+            return { name: type, color: '#888', bg: '#88888820' };
         }
 
         let monthlyData, monthlyDetails, holidayRecords;
@@ -216,19 +245,23 @@ modified_at: 2026-06-12
         // Helper function to normalize 假期 frontmatter to array
         function getHolidayTypes(page) {
             const holidayTypes = new Set();
+            const typeKeys = hcfg && hcfg.types ? Object.keys(hcfg.types) : ['pto', 'public', 'sick'];
             
             try {
-                // Check frontmatter 假期 property
-                if (page && page.假期) {
-                    const jiaqiArray = safeArray(page.假期);
+                // Check frontmatter field (configurable)
+                const fmVal = page && page[_fmField];
+                if (fmVal) {
+                    const jiaqiArray = safeArray(fmVal);
                     jiaqiArray.forEach(val => {
                         const strVal = safeString(val);
-                        if (strVal === 'PTO' || strVal === '放假/PTO') {
-                            holidayTypes.add('pto');
-                        } else if (strVal === '公共假期' || strVal === '放假/公共假期') {
-                            holidayTypes.add('public');
-                        } else if (strVal === '病假' || strVal === '放假/病假') {
-                            holidayTypes.add('sick');
+                        for (const tk of typeKeys) {
+                            if (_matchType(strVal, tk)) { holidayTypes.add(tk); return; }
+                        }
+                        // Fallback for no config
+                        if (!hcfg) {
+                            if (strVal === 'PTO' || strVal === '放假/PTO') holidayTypes.add('pto');
+                            else if (strVal === '公共假期' || strVal === '放假/公共假期') holidayTypes.add('public');
+                            else if (strVal === '病假' || strVal === '放假/病假') holidayTypes.add('sick');
                         }
                     });
                 }
@@ -237,18 +270,17 @@ modified_at: 2026-06-12
                 if (page && page.file && page.file.tags && Array.isArray(page.file.tags)) {
                     page.file.tags.forEach(tag => {
                         const strTag = safeString(tag);
-                        if (strTag === '#放假/PTO' || strTag === '放假/PTO') {
-                            holidayTypes.add('pto');
-                        } else if (strTag === '#放假/公共假期' || strTag === '放假/公共假期') {
-                            holidayTypes.add('public');
-                        } else if (strTag === '#放假/病假' || strTag === '放假/病假') {
-                            holidayTypes.add('sick');
+                        for (const tk of typeKeys) {
+                            if (_matchTag(strTag, tk)) { holidayTypes.add(tk); return; }
+                        }
+                        if (!hcfg) {
+                            if (strTag === '#放假/PTO' || strTag === '放假/PTO') holidayTypes.add('pto');
+                            else if (strTag === '#放假/公共假期' || strTag === '放假/公共假期') holidayTypes.add('public');
+                            else if (strTag === '#放假/病假' || strTag === '放假/病假') holidayTypes.add('sick');
                         }
                     });
                 }
-            } catch (e) {
-                // Silently fail for individual page errors
-            }
+            } catch (e) {}
             
             return holidayTypes;
         }
@@ -334,23 +366,33 @@ modified_at: 2026-06-12
 
         const _ss = v => (v == null ? '' : String(v).trim());
         const _sa = v => (v == null ? [] : Array.isArray(v) ? v : [v]);
+        const _htTypeKeys = hcfg && hcfg.types ? Object.keys(hcfg.types) : null;
         const _ht = (page) => {
             const s = new Set();
             try {
-                if (page && page.假期) {
-                    _sa(page.假期).forEach(v => {
+                const fmVal = page && page[_fmField];
+                if (fmVal) {
+                    _sa(fmVal).forEach(v => {
                         const sv = _ss(v);
-                        if (sv === 'PTO' || sv === '放假/PTO') s.add('pto');
-                        else if (sv === '公共假期' || sv === '放假/公共假期') s.add('public');
-                        else if (sv === '病假' || sv === '放假/病假') s.add('sick');
+                        if (_htTypeKeys) {
+                            for (const tk of _htTypeKeys) { if (_matchType(sv, tk)) { s.add(tk); return; } }
+                        } else {
+                            if (sv === 'PTO' || sv === '放假/PTO') s.add('pto');
+                            else if (sv === '公共假期' || sv === '放假/公共假期') s.add('public');
+                            else if (sv === '病假' || sv === '放假/病假') s.add('sick');
+                        }
                     });
                 }
                 if (page && page.file && page.file.tags && Array.isArray(page.file.tags)) {
                     page.file.tags.forEach(t => {
                         const st = _ss(t);
-                        if (st === '#放假/PTO' || st === '放假/PTO') s.add('pto');
-                        else if (st === '#放假/公共假期' || st === '放假/公共假期') s.add('public');
-                        else if (st === '#放假/病假' || st === '放假/病假') s.add('sick');
+                        if (_htTypeKeys) {
+                            for (const tk of _htTypeKeys) { if (_matchTag(st, tk)) { s.add(tk); return; } }
+                        } else {
+                            if (st === '#放假/PTO' || st === '放假/PTO') s.add('pto');
+                            else if (st === '#放假/公共假期' || st === '放假/公共假期') s.add('public');
+                            else if (st === '#放假/病假' || st === '放假/病假') s.add('sick');
+                        }
                     });
                 }
             } catch (e) {}
@@ -470,7 +512,7 @@ modified_at: 2026-06-12
         const __dow = (s) => { const p = String(s).split('-'); if (p.length !== 3) return '?'; const d = new Date(+p[0], +p[1] - 1, +p[2]); return isNaN(d.getTime()) ? '?' : ['日','一','二','三','四','五','六'][d.getDay()]; };
         try {
             // adapter.read = 直读磁盘，绕过 Obsidian cachedRead（外部修改的文件 cachedRead 会返回旧内容）
-            const planRaw = await app.vault.adapter.read("个人整理/请假计划.md");
+            const planRaw = await app.vault.adapter.read(_planFile);
             if (planRaw) {
                 for (const line of planRaw.split(/\r?\n/)) {
                     const cells = line.split('|').map(c => c.trim()).filter(Boolean);
@@ -527,21 +569,17 @@ modified_at: 2026-06-12
 
         // Function to get dot color based on holiday type
         function getDotColor(type) {
-            switch(type) {
-                case 'pto': return '#3498db';
-                case 'public': return '#f1c40f';
-                case 'mixed': return '#27ae60';
-                default: return 'white';
-            }
+            if (type === 'pto') return _ptoCfg.dotColor;
+            if (type === 'public') return _pubCfg.dotColor;
+            if (type === 'mixed') return _mixedDot.color;
+            return _noHolDot.color;
         }
 
         function getDotStroke(type) {
-            switch(type) {
-                case 'pto': return '#2980b9';
-                case 'public': return '#f39c12';
-                case 'mixed': return '#229954';
-                default: return '#d65d0e';
-            }
+            if (type === 'pto') return _ptoCfg.dotStroke;
+            if (type === 'public') return _pubCfg.dotStroke;
+            if (type === 'mixed') return _mixedDot.stroke;
+            return _noHolDot.stroke;
         }
 
         // Chart dimensions
@@ -646,8 +684,8 @@ modified_at: 2026-06-12
             .map(coord => `
                 <g>
                     <circle cx="${coord.x + chartWidth}" cy="${coord.y}" r="6" 
-                            fill="#ff6b6b" 
-                            stroke="#e74c3c" 
+                            fill="${_sickCfg.dotColor}" 
+                            stroke="${_sickCfg.dotStroke}" 
                             stroke-width="2"
                             style="cursor: pointer;">
                     </circle>
@@ -674,9 +712,9 @@ modified_at: 2026-06-12
         const limitLine = (annualLeaveLimit > 0 && !isNaN(limitLineY)) ? `
             <line x1="${padding}" y1="${limitLineY}" 
                   x2="${chartWidth - padding}" y2="${limitLineY}" 
-                  stroke="#e74c3c" stroke-width="3" stroke-dasharray="8,4" opacity="1"/>
+                  stroke="${_sickCfg.stroke}" stroke-width="3" stroke-dasharray="8,4" opacity="1"/>
             <text x="${chartWidth - padding - 5}" y="${limitLineY - 8}" 
-                  text-anchor="end" fill="#e74c3c" font-size="10" font-weight="bold">Limit: ${annualLeaveLimit}</text>
+                  text-anchor="end" fill="${_sickCfg.stroke}" font-size="10" font-weight="bold">Limit: ${annualLeaveLimit}</text>
         ` : '';
 
         // Summary text
@@ -774,13 +812,13 @@ modified_at: 2026-06-12
                     <line x1="${padding}" y1="${chartHeight - padding}" x2="${chartWidth - padding}" y2="${chartHeight - padding}" stroke="var(--text-muted)" stroke-width="2"/>
                     
                     <!-- Holiday Main line -->
-                    <path d="${pathString}" stroke="#d65d0e" stroke-width="3" fill="none"/>
+                    <path d="${pathString}" stroke="${_lineClr}" stroke-width="3" fill="none"/>
                     
                     <!-- Previous year trajectory (dotted) -->
                     ${prevYearPathString ? `<path d="${prevYearPathString}" stroke="#888" stroke-width="2" fill="none" stroke-dasharray="3,5" opacity="0.55"/>` : ''}
                     
                     <!-- Planned PTO projection (dashed) -->
-                    ${plannedMainTotal > 0 ? `<path d="${projPathString}" stroke="#d65d0e" stroke-width="2.5" fill="none" stroke-dasharray="6,4" opacity="0.85"/>` : ''}
+                    ${plannedMainTotal > 0 ? `<path d="${projPathString}" stroke="${_lineClr}" stroke-width="2.5" fill="none" stroke-dasharray="6,4" opacity="0.85"/>` : ''}
                     
                     <!-- Annual leave limit line -->
                     ${limitLine}
@@ -805,7 +843,7 @@ modified_at: 2026-06-12
                     ${prevYearSickPathString ? `<path d="${prevYearSickPathString}" stroke="#888" stroke-width="2" fill="none" stroke-dasharray="3,5" opacity="0.55"/>` : ''}
                     
                     <!-- Sick leave line -->
-                    <path d="${sickPathString}" stroke="#e74c3c" stroke-width="3" fill="none"/>
+                    <path d="${sickPathString}" stroke="${_sickCfg.stroke}" stroke-width="3" fill="none"/>
                     
                     <!-- Sick Data points -->
                     ${sickDataPoints}
@@ -821,27 +859,27 @@ modified_at: 2026-06-12
             <!-- Legend -->
             <div style="display: flex; justify-content: center; gap: 10px; margin: 5px 0; padding: 5px; border-radius: 6px; font-size: 11px; flex-wrap: wrap;">
                 <div style="display: flex; align-items: center; gap: 4px;">
-                    <div style="width: 10px; height: 10px; border-radius: 50%; background: #3498db; border: 2px solid #2980b9;"></div>
-                    <span style="color: var(--text-normal);">PTO</span>
+                    <div style="width: 10px; height: 10px; border-radius: 50%; background: ${_ptoCfg.dotColor}; border: 2px solid ${_ptoCfg.dotStroke};"></div>
+                    <span style="color: var(--text-normal);">${_ptoCfg.name}</span>
                 </div>
                 <div style="display: flex; align-items: center; gap: 4px;">
-                    <div style="width: 10px; height: 10px; border-radius: 50%; background: #f1c40f; border: 2px solid #f39c12;"></div>
-                    <span style="color: var(--text-normal);">Public Holiday</span>
+                    <div style="width: 10px; height: 10px; border-radius: 50%; background: ${_pubCfg.dotColor}; border: 2px solid ${_pubCfg.dotStroke};"></div>
+                    <span style="color: var(--text-normal);">${_pubCfg.name}</span>
                 </div>
                 <div style="display: flex; align-items: center; gap: 4px;">
-                    <div style="width: 10px; height: 10px; border-radius: 50%; background: #27ae60; border: 2px solid #229954;"></div>
+                    <div style="width: 10px; height: 10px; border-radius: 50%; background: ${_mixedDot.color}; border: 2px solid ${_mixedDot.stroke};"></div>
                     <span style="color: var(--text-normal);">Mixed</span>
                 </div>
                 <div style="display: flex; align-items: center; gap: 4px;">
-                    <div style="width: 10px; height: 10px; border-radius: 50%; background: white; border: 2px solid #d65d0e;"></div>
+                    <div style="width: 10px; height: 10px; border-radius: 50%; background: ${_noHolDot.color}; border: 2px solid ${_noHolDot.stroke};"></div>
                     <span style="color: var(--text-normal);">No Holiday</span>
                 </div>
                 <div style="display: flex; align-items: center; gap: 4px;">
-                    <div style="width: 10px; height: 10px; border-radius: 50%; background: #ff6b6b; border: 2px solid #e74c3c;"></div>
-                    <span style="color: var(--text-normal);">Sick Leave</span>
+                    <div style="width: 10px; height: 10px; border-radius: 50%; background: ${_sickCfg.dotColor}; border: 2px solid ${_sickCfg.dotStroke};"></div>
+                    <span style="color: var(--text-normal);">${_sickCfg.name}</span>
                 </div>
                 <div style="display: flex; align-items: center; gap: 4px;">
-                    <span style="width: 16px; border-top: 2.5px dashed #d65d0e; display: inline-block;"></span>
+                    <span style="width: 16px; border-top: 2.5px dashed ${_lineClr}; display: inline-block;"></span>
                     <span style="color: var(--text-normal);">计划 PTO</span>
                 </div>
                 <div style="display: flex; align-items: center; gap: 4px;">
