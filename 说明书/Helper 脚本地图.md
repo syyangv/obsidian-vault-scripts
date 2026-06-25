@@ -1,7 +1,7 @@
 ---
 tags:
   - meta/index
-modified_at: 2026-06-11
+modified_at: 2026-06-18
 ---
 
 # Helper 脚本地图（文件夹 · 用途 · 重组就绪度）
@@ -19,6 +19,7 @@ modified_at: 2026-06-11
 | **Meta Bind / JS Engine 动作** | 笔记按钮 `file:` → `engine` | `meta-bind/` | `.js` | 调用方笔记里写死路径，改路径要同步改笔记 |
 | **dataviewjs widget** | `![[名字]]` 嵌入 | `utils/` | `.md` | 按 basename 匹配，**移动 OK、改名断** |
 | **dv.view widget** | `dv.view("路径")` | `utils/` | `.js` | 按路径；Drive vault 上 dv.view 看不到外部新建 .js → 笔记用 INLINE 副本（见 `subscriptionGantt.js`） |
+| **共享配置** | 插件 `metadataCache` / `dv.page()` | `config/` | `.md`（纯 frontmatter） | 插件区块 + dataviewjs 模板共读同一文件；改 frontmatter 键名须同步更新两端消费者 |
 | **数据 / 笔记模板** | 被读取 / folder-template | `holidays/`(数据) · `Templates/`(模板) · `Banners/` | `.md` | — |
 
 **两条横切铁律：**
@@ -35,6 +36,7 @@ modified_at: 2026-06-11
 | `Templates/` | 20 | 笔记模板（嵌入 widget 的「枢纽」）| Daily/Weekly/Monthly Note、课程、电影/电视剧/综艺 等 |
 | `utils/` | ~93 | dataviewjs widget(`.md`) + Templater 函数(`.js`，钉死在此) + `holidays/` 数据 + 文档（**QuickAdd 脚本已迁出**）| `tickGrid.js`、`subscriptionGantt.js`、`subscriptionTimeline.md`，见 [[_INDEX]] |
 | `quickadd-scripts/` | 18 | **全部 QuickAdd 脚本**（集中地）| `tv-sync.js`、`monthlyAmountEdit.js`、`qaNewBook.js` 等 |
+| `config/` | 8 | **共享配置笔记**（纯 frontmatter `.md`），Dashboard 插件区块 + dataviewjs 模板共读 | `HolidayConfig.md`、`PersonalConfig.md`、`GoalsConfig.md`、4× RewardConfig |
 | `meta-bind/` | 2 | JS Engine 动作 | `addImportantDate.js` |
 | `lib/` | 1 | CustomJS 共享类 | `DailyLog.js` |
 | `Banners/` | 1 | banner 图定义（pretty-properties）| `banners-heidelberg.md` |
@@ -51,6 +53,7 @@ modified_at: 2026-06-11
 | **Templater 函数** (`tp.user.*`) | `tp.user.tickGrid` | **`user_scripts_folder = Helper/utils`** → 挪出 utils 即断 | `utils/tickGrid.js`（**钉死在 utils**）|
 | **CustomJS 类** | `window.customJS.DailyLog` | **`jsFolder = Helper/lib`** → 钉死在 lib | `lib/DailyLog.js` |
 | **JS Engine 动作** | 笔记按钮里 `engine` 调用，按路径 | 调用方笔记里的路径串 | `meta-bind/addImportantDate.js`（从 `重要日期.md`）、`quickadd-scripts/monthlyAmountEdit.js`（从 `Monthly Note.md` + 月计划，路径已同步更新）|
+| **共享配置** (`.md` 纯 frontmatter) | 插件 `metadataCache` 或 `dv.page()` | **frontmatter 键名** → 改键名须同步两端 | `config/`（8 个：4× Reward + Personal + Holiday + Goals + folder note）|
 | **数据 / 文档** | 被读取 / 导航 | basename / MOC 链接 | `utils/holidays/`、`Banners/`、各文件夹笔记 |
 
 ## 3. 跨文件夹依赖图
@@ -63,6 +66,8 @@ utils/读书笔记-*.js ──▶ Templates/读书笔记.md
 utils/dailyAdd{Book,Show},UpdateCourse.js ──window.customJS──▶ lib/DailyLog.js
 utils/monthlyAmountEdit.js ◀──engine── Templates/Monthly Note.md, 年度记录/月计划/*
 meta-bind/addImportantDate.js ◀──engine── 个人整理/重要日期.md
+config/*.md ──frontmatter──▶ .obsidian/plugins/modular-theme-dashboard/main.js (metadataCache)
+config/*.md ──frontmatter──▶ utils/trackHolidays.md, utils/*YearlyReward.md (dv.page)
 ```
 
 ## 4. 位置 vs 用途 不一致（重组候选）
