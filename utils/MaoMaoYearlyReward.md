@@ -1,5 +1,5 @@
 ---
-modified_at: 2026-05-19
+modified_at: 2026-06-18
 ---
 ```dataviewjs
 (async () => {
@@ -30,88 +30,75 @@ modified_at: 2026-05-19
     window[containerId + '_running'] = true;
 
 try {
+    const cfgPage = dv.page("Helper/config/MaoMaoRewardConfig");
+    if (!cfgPage || !cfgPage.file || !cfgPage.file.frontmatter) {
+        dv.paragraph("⚠️ Missing MaoMaoRewardConfig.md");
+        return;
+    }
+    const cfg = cfgPage.file.frontmatter;
+    const prefix = cfg.prefix;
+    const rn = cfg.rowNames || {};
+    const nonPct = cfg.nonPct || [];
+    const mirror = cfg.mirror || [];
+
     const baseFolder = "年度记录";
     const dailyNotesFolder = "日记";
-    const prefix = "毛毛_";
 
     const currentFileName = activeFile.basename || "";
     const yearMatch = currentFileName.match(/(\d{4})/);
     const selectedYear = yearMatch ? parseInt(yearMatch[1]) : new Date().getFullYear();
 
-    // Custom row names (categories) — add entries as needed
-    const rowNames = {
-        // "毛毛_exampleKey": "Display Name",
-    };
-
-    // Special categories that show a dollar amount instead of a progress bar
-    const nonPercentageCategories = [];
-
-    // Categories where credit should mirror the used amount (no separate budget)
-    const mirrorUsedCategories = [];
-
-    // Auto-convert key suffix to Title Case fallback
-    function camelToTitle(key) {
-        if (!key || typeof key !== 'string') {
-            return 'Unknown';
-        }
-        let name = key.replace(new RegExp(`^${prefix}`), '');
-        name = name.replace(/([A-Z])/g, ' $1');
-        name = name.charAt(0).toUpperCase() + name.slice(1);
-        return name.trim() || key;
-    }
-
-    function parseRewardAmount(value) {
-        if (typeof value === 'number' && !isNaN(value)) {
-            return value;
-        }
-        if (typeof value === 'string') {
-            const normalized = value.replace(/[$,]/g, '').trim();
-            if (normalized !== '') {
-                const parsed = Number(normalized);
-                if (!isNaN(parsed)) {
-                    return parsed;
-                }
-            }
-        }
+    function parseVal(v) {
+        if (typeof v === 'number' && !isNaN(v)) return v;
+        if (typeof v === 'string') { const n = Number(v.replace(/[$,]/g, '')); if (!isNaN(n)) return n; }
         return null;
     }
 
-    // Sims-style progress bar
-    function createProgressBar(percentage) {
-        if (typeof percentage !== 'number' || isNaN(percentage)) {
-            percentage = 0;
+    function collectTotals(pages) {
+        const totals = {};
+        for (let page of pages) {
+            if (!page || !page.file) continue;
+            const fm = page.file.frontmatter;
+            if (!fm || typeof fm !== 'object') continue;
+            for (const key of Object.keys(fm)) {
+                if (!key.startsWith(prefix)) continue;
+                const v = parseVal(fm[key]);
+                if (v !== null) totals[key] = (totals[key] || 0) + v;
+            }
         }
+        return totals;
+    }
 
-        const pct    = Math.min(100, Math.max(0, percentage));
-        const W = 200, H = 18, R = 9;
-        const filled = (pct / 100) * W;
+    let expensePages;
+    try { expensePages = dv.pages(`"${baseFolder}/${selectedYear}"`); }
+    catch (e) { expensePages = []; }
 
-        const color =
-            pct >= 80 ? "#22c55e" :
-            pct >= 60 ? "#eab308" :
-            pct >= 40 ? "#f97316" :
-            pct >= 20 ? "#ef4444" :
-                        "#b91c1c";
+    let dailyPages;
+    try { dailyPages = dv.pages(`"${dailyNotesFolder}/${selectedYear}"`); }
+    catch (e) { dailyPages = []; }
 
+    const yearTotals = collectTotals(expensePages);
+    const creditTotals = collectTotals(dailyPages);
+
+    const allKeys = [...new Set([...Object.keys(yearTotals), ...Object.keys(creditTotals)])].sort();
+    if (allKeys.length === 0) {
+        dv.paragraph(`📄 No 毛毛 data found for ${selectedYear}.`);
+        return;
+    }
+
+    function camelToTitle(key) {
+        let name = key.replace(new RegExp('^' + prefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')), '');
+        name = name.replace(/([A-Z])/g, ' $1');
+        return (name.charAt(0).toUpperCase() + name.slice(1)).trim() || key;
+    }
+
+    function createProgressBar(percentage) {
+        const pct = Math.min(100, Math.max(0, typeof percentage === 'number' && !isNaN(percentage) ? percentage : 0));
+        const W = 200, H = 18, R = 9, filled = (pct / 100) * W;
+        const color = pct >= 80 ? "#22c55e" : pct >= 60 ? "#eab308" : pct >= 40 ? "#f97316" : pct >= 20 ? "#ef4444" : "#b91c1c";
         const hId = "hl_" + Math.random().toString(36).slice(2, 7);
         const cId = "cp_" + Math.random().toString(36).slice(2, 7);
-
-        return `<svg width="${W}" height="${H}" style="vertical-align:middle">
-  <defs>
-    <linearGradient id="${hId}" x1="0" x2="0" y1="0" y2="1">
-      <stop offset="0%"   stop-color="white" stop-opacity="0.52"/>
-      <stop offset="38%"  stop-color="white" stop-opacity="0.09"/>
-      <stop offset="39%"  stop-color="black" stop-opacity="0.00"/>
-      <stop offset="100%" stop-color="black" stop-opacity="0.28"/>
-    </linearGradient>
-    <clipPath id="${cId}"><rect width="${W}" height="${H}" rx="${R}"/></clipPath>
-  </defs>
-  <rect width="${W}" height="${H}" rx="${R}" fill="#141414" stroke="#080808" stroke-width="1.5"/>
-  <g clip-path="url(#${cId})">
-    <rect width="${filled}" height="${H}" fill="${color}"/>
-    <rect width="${filled}" height="${H}" fill="url(#${hId})"/>
-  </g>
-</svg><span style="margin-left:9px;font-size:1.1em;">${Math.max(0, percentage).toFixed(1)}%</span>`;
+        return `<svg width="${W}" height="${H}" style="vertical-align:middle"><defs><linearGradient id="${hId}" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stop-color="white" stop-opacity="0.52"/><stop offset="38%" stop-color="white" stop-opacity="0.09"/><stop offset="39%" stop-color="black" stop-opacity="0.00"/><stop offset="100%" stop-color="black" stop-opacity="0.28"/></linearGradient><clipPath id="${cId}"><rect width="${W}" height="${H}" rx="${R}"/></clipPath></defs><rect width="${W}" height="${H}" rx="${R}" fill="#141414" stroke="#080808" stroke-width="1.5"/><g clip-path="url(#${cId})"><rect width="${filled}" height="${H}" fill="${color}"/><rect width="${filled}" height="${H}" fill="url(#${hId})"/></g></svg><span style="margin-left:9px;font-size:1.1em;">${Math.max(0, percentage).toFixed(1)}%</span>`;
     }
 
     function buildTable(container, headers, rows) {
@@ -122,106 +109,26 @@ try {
         const tbody = tbl.createEl("tbody");
         rows.forEach(row => {
             const tr = tbody.createEl("tr");
-            row.forEach(cell => {
-                const td = tr.createEl("td");
-                if (typeof cell === "string" && cell.includes("<svg")) {
-                    td.innerHTML = cell;
-                } else {
-                    td.innerHTML = String(cell);
-                }
-            });
+            row.forEach(cell => { const td = tr.createEl("td"); td.innerHTML = String(cell); });
         });
     }
 
-    // Get budgets/allocations from 年度记录
-    let expensePages;
-    try {
-        expensePages = dv.pages(`"${baseFolder}/${selectedYear}"`);
-    } catch (e) {
-        expensePages = [];
-    }
+    const rows = allKeys.map(key => {
+        const displayName = rn[key] || camelToTitle(key);
+        const credit = Math.round(creditTotals[key] || 0);
+        const expense = mirror.includes(key) ? credit : Math.round(yearTotals[key] || 0);
+        const isNP = nonPct.includes(key);
+        const net = isNP ? 0 : expense - credit;
+        const pct = expense > 0 ? (credit / expense) * 100 : 0;
+        const bar = isNP ? `$${credit}` : createProgressBar(pct);
+        return [displayName, expense, credit, net, bar];
+    });
 
-    const yearTotals = {};
-
-    for (let page of expensePages) {
-        if (!page || !page.file) continue;
-        const frontmatter = page.file.frontmatter;
-        if (!frontmatter || typeof frontmatter !== 'object') continue;
-
-        for (let key in frontmatter) {
-            if (key && key.startsWith(prefix)) {
-                const value = parseRewardAmount(frontmatter[key]);
-                if (value !== null) {
-                    yearTotals[key] = (yearTotals[key] || 0) + value;
-                }
-            }
-        }
-    }
-
-    // Get usage from 日记
-    let dailyPages;
-    try {
-        dailyPages = dv.pages(`"${dailyNotesFolder}/${selectedYear}"`);
-    } catch (e) {
-        dailyPages = [];
-    }
-
-    const creditTotals = {};
-
-    for (let page of dailyPages) {
-        if (!page || !page.file) continue;
-        const frontmatter = page.file.frontmatter;
-        if (!frontmatter || typeof frontmatter !== 'object') continue;
-
-        for (let key in frontmatter) {
-            if (key && key.startsWith(prefix)) {
-                const value = parseRewardAmount(frontmatter[key]);
-                if (value !== null) {
-                    creditTotals[key] = (creditTotals[key] || 0) + value;
-                }
-            }
-        }
-    }
-
-    // Combine all unique keys
-    const allKeys = new Set([...Object.keys(yearTotals), ...Object.keys(creditTotals)]);
-
-    if (allKeys.size === 0) {
-        dv.paragraph(`📄 No 毛毛 data found for ${selectedYear}. Make sure your notes have frontmatter properties starting with "${prefix}".`);
-        return;
-    }
-
-    const rows = Array.from(allKeys)
-        .sort()
-        .map(key => {
-            const displayName = rowNames[key] || camelToTitle(key);
-            const credit = Math.round(creditTotals[key] || 0);
-            const expense = mirrorUsedCategories.includes(key)
-                ? credit
-                : Math.round(yearTotals[key] || 0);
-            const net = nonPercentageCategories.includes(key) ? 0 : expense - credit;
-            const percentage = expense > 0 ? (credit / expense) * 100 : 0;
-
-            const progressBar = nonPercentageCategories.includes(key)
-                ? `$${credit}`
-                : createProgressBar(percentage);
-
-            return [displayName, expense, credit, net, progressBar];
-        });
-
-    // Total row
-    const totalExpense = rows.reduce((sum, row) => sum + (typeof row[1] === 'number' ? row[1] : 0), 0);
-    const totalCredit  = rows.reduce((sum, row) => sum + (typeof row[2] === 'number' ? row[2] : 0), 0);
-    const totalNet     = totalExpense - totalCredit;
-    const totalPct     = totalExpense > 0 ? (totalCredit / totalExpense) * 100 : 0;
-
-    rows.push([
-        "**TOTAL**",
-        totalExpense,
-        `<span style="color: red;">$${totalCredit}</span>`,
-        totalNet,
-        createProgressBar(totalPct)
-    ]);
+    const totalExp = rows.reduce((s, r) => s + (typeof r[1] === 'number' ? r[1] : 0), 0);
+    const totalCred = rows.reduce((s, r) => s + (typeof r[2] === 'number' ? r[2] : 0), 0);
+    const totalNet = totalExp - totalCred;
+    const totalPct = totalExp > 0 ? (totalCred / totalExp) * 100 : 0;
+    rows.push(["**TOTAL**", totalExp, `<span style="color: red;">$${totalCred}</span>`, totalNet, createProgressBar(totalPct)]);
 
     buildTable(dv.container, ["Category", "Credit", "已用", "剩余", "Usage"], rows);
 
