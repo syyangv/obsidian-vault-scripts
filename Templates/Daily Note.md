@@ -12,7 +12,7 @@ medication_long:
   - 吃药/Junel1-20
   - 吃药/Acetylcysteine-NAC
   - 吃药/Zoloft-112.5mg
-  - 吃药/Buspirone-7.5mg
+  - 吃药/Buspirone-15mg
 Supplements:
   - 吃药/保健品/鱼油
   - 吃药/保健品/维生素D
@@ -27,7 +27,7 @@ medication:
 noBuy: false
 小饭桌: false
 办公室: false
-modified_at: 2026-06-06
+modified_at: 2026-06-24
 ---
 ![[dayOfWeek|no-title]]
 ![[dailyNavigation]]
@@ -54,9 +54,9 @@ modified_at: 2026-06-06
 	- 🎤 `INPUT[toggle:activity_singing]`
 	- 🏊 `INPUT[toggle:activity_swimming]`
 
-**🏥 Medical:** `INPUT[inlineListSuggester(option(Dermatologist), option(Psychiatrist), option(Gastroenterologist), option(Dentist), option(Ophthalmologist), option(PCP), option(UrgentCare), option(OBGYN), option(Allergist), option(Urologist)):medical_tags]`
+**🏥 Medical:** `INPUT[inlineListSuggester(option(Dermatologist), option(Psychiatrist), option(Gastroenterologist), option(Dentist), option(Ophthalmologist), option(PCP), option(UrgentCare), option(OBGYN), option(Allergist), option(Urologist), option(Pediatrist)):medical_tags]`
 
-**💊长期Medication:** `INPUT[inlineListSuggester(option(吃药/Zoloft-112.5mg), option(吃药/Allegra), option(吃药/Glycopyrrlate-1), option(吃药/Junel1-20), option(吃药/Acetylcysteine-NAC), option(吃药/Buspirone-7.5mg)):medication_long]`
+**💊长期Medication:** `INPUT[inlineListSuggester(option(吃药/Zoloft-112.5mg), option(吃药/Allegra), option(吃药/Glycopyrrlate-1), option(吃药/Junel1-20), option(吃药/Acetylcysteine-NAC), option(吃药/Buspirone-15mg)):medication_long]`
 
 **🧪Supplements:** `INPUT[inlineListSuggester(option(吃药/保健品/鱼油), option(吃药/保健品/维生素D), option(吃药/保健品/维生素K), option(吃药/保健品/镁-2), option(吃药/保健品/PsylliumHusk-3)):Supplements]`
 
