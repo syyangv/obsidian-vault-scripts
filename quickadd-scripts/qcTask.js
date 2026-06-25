@@ -92,9 +92,9 @@ module.exports = async (params) => {
 
     let content = await app.vault.read(file);
     
-    // Try to insert after the dataviewjs block (Quick Capture.md has hide/archive buttons there)
+    // Try to insert after the quick_capture_controls embed (Quick Capture.md)
     let replaced = content.replace(
-        /(```dataviewjs[\s\S]*?```\n)/,
+        /(!\[\[quick_capture_controls\]\]\n)/,
         "$1" + taskLine + "\n"
     );
 
