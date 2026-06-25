@@ -1,5 +1,5 @@
 ---
-modified_at: 2026-06-05
+modified_at: 2026-06-13
 ---
 ```dataviewjs
 // =====================================================
@@ -424,7 +424,25 @@ mkBtn('+', () => {
 const sep = bar.createEl('span');
 sep.style.cssText = 'width:1px;height:16px;background:var(--background-modifier-border);margin:0 2px;';
 
-const fitBtn = mkBtn('全年', () => applyZoom(1, 0));
+const zoomToRecent = () => {
+    const ago60 = addDays(today, -60);
+    const si = Math.max(0, weeks.findIndex(w => w.mon >= ago60));
+    const ei = Math.min(WEEKS, cwi + 4);
+    const cw = (scrollBox.clientWidth || 600) - LABEL_W * zoomLevel;
+    const rw = (ei - si) * STEP + 20;
+    const z = Math.max(0.5, Math.min(1.2, cw / rw));
+    applyZoom(z, si * STEP);
+};
+const recentBtn = mkBtn('近期', zoomToRecent);
+
+mkBtn('近3月', () => {
+    const ago = addDays(today, -90);
+    const startIdx = Math.max(0, weeks.findIndex(w => w.mon >= ago));
+    const containerW = (scrollBox.clientWidth || 600) - LABEL_W * zoomLevel;
+    const rangeW = (WEEKS - startIdx) * STEP + 20;
+    const z = Math.max(0.5, Math.min(4, containerW / rangeW));
+    applyZoom(z, startIdx * STEP);
+});
 
 const quarters = [['Q1',0,13],['Q2',13,26],['Q3',26,39],['Q4',39,WEEKS]];
 for (const [label, s, e] of quarters) {
@@ -436,14 +454,7 @@ for (const [label, s, e] of quarters) {
     });
 }
 
-mkBtn('近3月', () => {
-    const ago = addDays(today, -90);
-    const startIdx = Math.max(0, weeks.findIndex(w => w.mon >= ago));
-    const containerW = (scrollBox.clientWidth || 600) - LABEL_W * zoomLevel;
-    const rangeW = (WEEKS - startIdx) * STEP + 20;
-    const z = Math.max(0.5, Math.min(4, containerW / rangeW));
-    applyZoom(z, startIdx * STEP);
-});
+mkBtn('全年', () => applyZoom(1, 0));
 
 scrollBox.addEventListener('wheel', (e) => {
     if (!e.ctrlKey && !e.metaKey) return;
@@ -459,12 +470,8 @@ scrollBox.addEventListener('wheel', (e) => {
 }, { passive: false });
 
 requestAnimationFrame(() => {
-    if (cwi >= 0) {
-        const targetX = cwi * STEP * zoomLevel;
-        const visible = scrollBox.clientWidth - LABEL_W * zoomLevel;
-        scrollBox.scrollLeft = Math.max(0, targetX - visible / 2);
-    }
-    fitBtn.style.cssText = btnActiveStyle;
+    zoomToRecent();
+    recentBtn.style.cssText = btnActiveStyle;
 });
 
 })();
