@@ -1,6 +1,6 @@
 ---
-last_sync: 2026-06-24
-modified_at: 2026-06-24
+last_sync: 2026-06-30
+modified_at: 2026-06-30
 ---
 
 ```dataviewjs
