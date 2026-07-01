@@ -1,5 +1,5 @@
 ---
-modified_at: 2026-06-13
+modified_at: 2026-06-29
 ---
 ```dataviewjs
 // =====================================================
@@ -24,6 +24,16 @@ const MONTH_NAMES = ['一月','二月','三月','四月','五月','六月',
 // Task groups — gradLight/gradDark drive the squircle icon gradient;
 // icon is a 16×16-space SVG snippet rendered inside the squircle.
 const GROUPS = [
+    {
+        room: '办公', color: '#60a5fa', gradLight: '#dbeafe', gradDark: '#1e40af',
+        icon: `<rect x="2" y="4" width="12" height="9" rx="1.5" stroke="white" stroke-width="1.5" fill="none"/>
+               <line x1="2" y1="7" x2="14" y2="7" stroke="white" stroke-width="1.2"/>
+               <line x1="5.5" y1="2" x2="5.5" y2="4" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+               <line x1="10.5" y1="2" x2="10.5" y2="4" stroke="white" stroke-width="1.5" stroke-linecap="round"/>`,
+        tasks: [
+            { key: '办公室3天', fm: '_office_weekly_', fmVals: [], label: '🏢 办公室 3天/周' },
+        ]
+    },
     {
         room: '地面', color: '#fbbf24', gradLight: '#fef3c7', gradDark: '#b45309',
         icon: `<line x1="2.5" y1="5"   x2="13.5" y2="5"   stroke="white" stroke-width="1.8" stroke-linecap="round"/>
@@ -183,6 +193,37 @@ for (const page of pages) {
             if (pd >= scanFrom) done[task.key].add(toWk(pd));
         }
     } catch(e) {}
+}
+
+// ──────────────────── OFFICE 3-DAY WEEKLY CHECK ────
+const OFFICE_KEY = '办公室3天';
+const OFFICE_GOAL = 3;
+let ygHolidays = new Set();
+try {
+    const raw = await app.vault.adapter.read(".obsidian/plugins/yearly-glance/data.json");
+    const yg = JSON.parse(raw);
+    for (const h of (yg.data?.holidays ?? [])) {
+        for (const d of (h.dateArr ?? [])) ygHolidays.add(d);
+    }
+} catch (e) {}
+
+for (const wk of weeks) {
+    if (wk.mon > today) break;
+    let credited = 0;
+    for (let dow = 1; dow <= 5; dow++) {
+        const d = addDays(wk.mon, dow - 1);
+        if (d > today) break;
+        const ds = fmtDate(d);
+        if (ygHolidays.has(ds)) { credited++; continue; }
+        const pg = dv.page(`日记/${d.getFullYear()}/${ds}`);
+        if (!pg) continue;
+        if (pg["办公室"] === true || pg["办公室"] === "true") { credited++; continue; }
+        const leave = pg["假期"];
+        const hasLeave = Array.isArray(leave) ? leave.length > 0
+            : (leave != null && leave !== "" && leave !== false);
+        if (hasLeave) credited++;
+    }
+    if (credited >= OFFICE_GOAL) done[OFFICE_KEY].add(wk.key);
 }
 
 // ──────────────────── COMPUTE NEXT DUE ─────────────

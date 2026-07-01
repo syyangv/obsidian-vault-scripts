@@ -6,13 +6,15 @@ tags:
 结束日期（周六）: <% window.moment(tp.file.title, "GGGG-[W]WW").day(6).format("YYYY-MM-DD") %>
 cssclasses:
   - hide-frontmatter
-modified_at: 2026-06-04
+modified_at: 2026-06-25
 ---
 
 ![[weeklyNavigation]]
 
 [[信息intake]]
 ![[genTOC]]
+
+![[weeklyOfficeTracker]]
 
 # 1 Tasks
 ## 1.1 Upcoming
