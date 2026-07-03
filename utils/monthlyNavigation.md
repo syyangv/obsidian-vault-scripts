@@ -1,5 +1,5 @@
 ---
-modified_at: 2026-03-14
+modified_at: 2026-07-03
 ---
 ```dataviewjs
 (async () => {
@@ -73,18 +73,33 @@ modified_at: 2026-03-14
         const navRow = wrap.createEl('div', {
             attr: { style: 'display:flex; gap:8px; align-items:center; justify-content:center;' }
         });
-        simNavBtn(navRow, '11,4 6,9 11,14', e => {
+        async function openOrCreateMonthly(year, monthStr) {
+            const fullPath = `年度记录/${year}/月计划/${monthStr}.md`;
+            if (!app.vault.getAbstractFileByPath(fullPath)) {
+                const tmplFile = app.vault.getAbstractFileByPath('Helper/Templates/Monthly Note.md');
+                if (tmplFile) {
+                    let tmpl = await app.vault.read(tmplFile);
+                    tmpl = tmpl.replace(/modified_at:\s*\d{4}-\d{2}-\d{2}/, 'modified_at: ' + window.moment().format('YYYY-MM-DD'));
+                    const folder = app.vault.getAbstractFileByPath(`年度记录/${year}/月计划`);
+                    if (!folder) await app.vault.createFolder(`年度记录/${year}/月计划`);
+                    await app.vault.create(fullPath, tmpl);
+                }
+            }
+            app.workspace.openLinkText(fullPath.replace(/\.md$/, ''), activeFile.path);
+        }
+
+        simNavBtn(navRow, '11,4 6,9 11,14', async e => {
             e.preventDefault();
-            app.workspace.openLinkText(`年度记录/${prevYear}/月计划/${prevMonthString}`, activeFile.path);
+            await openOrCreateMonthly(prevYear, prevMonthString);
         });
         navRow.createEl('span', { text: prevMonthString, attr: { style: `color:${P.muted};` } });
         sep(navRow);
         pill(navRow, `${currentYear}年`, `年度记录/${currentYear}/${currentYear}`, current);
         sep(navRow);
         navRow.createEl('span', { text: nextMonthString, attr: { style: `color:${P.muted};` } });
-        simNavBtn(navRow, '7,4 12,9 7,14', e => {
+        simNavBtn(navRow, '7,4 12,9 7,14', async e => {
             e.preventDefault();
-            app.workspace.openLinkText(`年度记录/${nextYear}/月计划/${nextMonthString}`, activeFile.path);
+            await openOrCreateMonthly(nextYear, nextMonthString);
         });
 
     } catch (err) {
