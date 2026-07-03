@@ -381,9 +381,33 @@ module.exports = async (params) => {
 
     // ===== Remove any folder notes auto-created inside Attachments =====
     // Folder Notes plugin may create .md files when folders are created; attachment folders are media-only.
-    for (const note of app.vault.getMarkdownFiles().filter(f => f.path.startsWith(imageFolder + '/'))) {
+    // Do NOT trash every markdown file under Attachments: Obsidian Excalidraw drawings are `.excalidraw.md`
+    // files and are valid attachments. Only remove generated folder notes whose basename matches their folder.
+    function isGeneratedAttachmentFolderNote(note) {
+        if (!note.path.startsWith(imageFolder + '/') || note.extension !== 'md') {
+            return false;
+        }
+
+        const lowerName = note.name.toLowerCase();
+        if (lowerName.endsWith('.excalidraw.md')) {
+            return false;
+        }
+
+        const pathParts = note.path.split('/');
+        const fileBaseName = note.basename;
+        const parentFolderName = pathParts.length >= 2 ? pathParts[pathParts.length - 2] : '';
+
+        // Examples of generated folder notes:
+        // - Attachments/pdf/pdf.md
+        // - Attachments/cover/cover.md
+        // - Attachments/cover/书/书.md
+        // Avoid deleting ordinary markdown attachments such as Excalidraw files.
+        return fileBaseName === parentFolderName;
+    }
+
+    for (const note of app.vault.getMarkdownFiles().filter(isGeneratedAttachmentFolderNote)) {
         try {
-            console.log(`Removing folder note from attachments: ${note.path}`);
+            console.log(`Removing generated folder note from attachments: ${note.path}`);
             await app.vault.trash(note, true);
         } catch (e) {
             console.error(`Failed to remove folder note ${note.path}:`, e);
