@@ -23,11 +23,12 @@ medication:
 体重:
 起起体重:
 假期:
+location: jc
 今日甚好: false
 noBuy: false
 小饭桌: false
 办公室: false
-modified_at: 2026-06-25
+modified_at: 2026-07-03
 ---
 ![[dayOfWeek|no-title]]
 ![[dailyNavigation]]
