@@ -28,7 +28,7 @@ location: jc
 noBuy: false
 小饭桌: false
 办公室: false
-modified_at: 2026-07-03
+modified_at: 2026-07-08
 ---
 ![[dayOfWeek|no-title]]
 ![[dailyNavigation]]
@@ -55,7 +55,7 @@ modified_at: 2026-07-03
 	- 🎤 `INPUT[toggle:activity_singing]`
 	- 🏊 `INPUT[toggle:activity_swimming]`
 
-**🏥 Medical:** `INPUT[inlineListSuggester(option(Dermatologist), option(Psychiatrist), option(Gastroenterologist), option(Dentist), option(Ophthalmologist), option(PCP), option(UrgentCare), option(OBGYN), option(Allergist), option(Urologist), option(Pediatrist)):medical_tags]`
+**🏥 Medical:** `INPUT[inlineListSuggester(option(Dermatologist), option(Psychiatrist), option(Gastroenterologist), option(Dentist), option(Ophthalmologist), option(PCP), option(UrgentCare), option(OBGYN), option(Allergist), option(Urologist), option(Podiatrist)):medical_tags]`
 
 **💊长期Medication:** `INPUT[inlineListSuggester(option(吃药/Zoloft-112.5mg), option(吃药/Allegra), option(吃药/Glycopyrrlate-1), option(吃药/Junel1-20), option(吃药/Acetylcysteine-NAC), option(吃药/Buspirone-15mg)):medication_long]`
 
