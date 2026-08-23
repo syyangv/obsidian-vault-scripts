@@ -1,5 +1,5 @@
 ---
-modified_at: 2025-05-24
+modified_at: 2026-07-19
 ---
 # DQL
 Similar to SQL with what comes after `SELECT`

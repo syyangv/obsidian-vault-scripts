@@ -1,7 +1,7 @@
 ---
 tags:
   - how-to
-modified_at: 2025-06-04
+modified_at: 2026-07-19
 ---
 > [!info]
 > [doc](https://mermaid.js.org/intro/syntax-reference.html)

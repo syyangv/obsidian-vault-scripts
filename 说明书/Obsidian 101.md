@@ -1,11 +1,11 @@
 ---
-aliases: 
+aliases:
 tags:
   - obsidian
   - how-to
 cssclasses:
   - wide-page
-modified_at: 2025-10-28
+modified_at: 2026-07-19
 ---
 
 #obsidian

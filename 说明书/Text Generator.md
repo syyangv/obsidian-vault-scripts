@@ -1,4 +1,4 @@
 ---
-modified_at: 2025-05-22
+modified_at: 2026-07-19
 ---
 Use templates as GPT conversation formats

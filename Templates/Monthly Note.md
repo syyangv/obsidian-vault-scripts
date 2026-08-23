@@ -11,7 +11,7 @@ UnitedQuest_rideshare: 8
 购物金额:
 食物金额:
 电费:
-modified_at: 2026-06-01
+<%* tR += "modified_at: " + tp.date.now("YYYY-MM-DD") %>
 毛毛_交通卡: 50
 ---
 
@@ -31,7 +31,7 @@ actions:
 <font color="#92d050">**<center><span style="font-size: 20px;">🎯 </span></center>**</font></font>
 
 # BUJO
-[[2026Q1#2026年1月 事件Planning]]
+[[<% window.moment(tp.file.title, "YYYY-MM").format("YYYY[Q]Q") %>#<% window.moment(tp.file.title, "YYYY-MM").format("YYYY年M月") %> 事件Planning]]
 
 ![[plumbobCalendarGrid]]
 # 其他统计

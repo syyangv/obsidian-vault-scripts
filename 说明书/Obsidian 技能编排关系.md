@@ -2,7 +2,7 @@
 tags:
   - meta/index
 created: 2026-06-11
-modified_at: 2026-06-11
+modified_at: 2026-07-19
 ---
 
 # Obsidian 技能编排关系（Claude Code skills）

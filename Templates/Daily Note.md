@@ -23,12 +23,55 @@ medication:
 体重:
 起起体重:
 假期:
-location: jc
+location: <%*
+  const defaultLoc = "jc";
+  let loc = defaultLoc;
+  const targetDate = tp.file.title;
+  const travelPlanFile = app.vault.getAbstractFileByPath("个人整理/旅行计划.md");
+  if (travelPlanFile) {
+    const text = await app.vault.read(travelPlanFile);
+    let colStart = -1, colEnd = -1, colLoc = -1, colDate = -1, headerFound = false;
+    for (const line of text.split(/\r?\n/)) {
+      const trimmed = line.trim();
+      if (!trimmed.startsWith("|") || /^\|[-| :]+\|$/.test(trimmed)) continue;
+      const cells = trimmed.split("|").map(c => c.trim()).filter(Boolean);
+      if (cells.length === 0) continue;
+      if (!headerFound) {
+        const lower = cells.map(c => c.toLowerCase());
+        colStart = lower.findIndex(c => c === "start date" || c === "start_date" || c === "start");
+        colEnd = lower.findIndex(c => c === "end date" || c === "end_date" || c === "end");
+        colDate = lower.findIndex(c => c === "date");
+        colLoc = lower.findIndex(c => c === "location");
+        if (colLoc === -1) colLoc = 0;
+        if (colStart === -1 && colDate === -1) colStart = 1;
+        headerFound = true;
+        continue;
+      }
+      const rowLoc = (cells[colLoc] ?? "").toLowerCase();
+      if (!rowLoc) continue;
+      if (colStart !== -1) {
+        const start = cells[colStart] ?? "";
+        const end = (colEnd !== -1 ? cells[colEnd] : "") || start;
+        if (start && targetDate >= start && targetDate <= end) {
+          loc = rowLoc;
+          break;
+        }
+      } else if (colDate !== -1) {
+        const d = cells[colDate] ?? "";
+        if (d === targetDate) {
+          loc = rowLoc;
+          break;
+        }
+      }
+    }
+  }
+  tR += loc;
+%>
 今日甚好: false
 noBuy: false
 小饭桌: false
 办公室: false
-modified_at: 2026-07-13
+modified_at: <%* tR += tp.date.now("YYYY-MM-DD") %>
 ---
 ![[dayOfWeek|no-title]]
 ![[dailyNavigation]]
@@ -53,9 +96,9 @@ modified_at: 2026-07-13
 **🎯 Activities:** `INPUT[inlineListSuggester(option(健身房), option(学习), option(下厨), option(看戏), option(出去玩), option(毛毛)):activity_tags]`
 	- 🎾 `INPUT[toggle:activity_tennis]` 🏸`INPUT[toggle:activity_squash]` 🥊 `INPUT[toggle:activity_boxing]` 🏋️ `INPUT[toggle:activity_weights]`
 	- 🎤 `INPUT[toggle:activity_singing]`
-	- 🏊 `INPUT[toggle:activity_swimming]`
+	- 🏊 `INPUT[toggle:activity_swimming]` 🧘🏻‍♀️ `INPUT[toggle:activity_pt]`
 
-**🏥 Medical:** `INPUT[inlineListSuggester(option(Dermatologist), option(Psychiatrist), option(Gastroenterologist), option(Dentist), option(Ophthalmologist), option(PCP), option(UrgentCare), option(OBGYN), option(Allergist), option(Urologist), option(Podiatrist)):medical_tags]`
+**🏥 Medical:** `INPUT[inlineListSuggester(option(Dermatologist), option(Psychiatrist), option(Gastroenterologist), option(Dentist), option(Ophthalmologist), option(PCP), option(UrgentCare), option(OBGYN), option(Allergist), option(Urologist), option(Podiatrist), option(ENT)):medical_tags]`
 
 **💊长期Medication:** `INPUT[inlineListSuggester(option(吃药/Zoloft-112.5mg), option(吃药/Allegra), option(吃药/Glycopyrrlate-1), option(吃药/Junel1-20), option(吃药/Acetylcysteine-NAC), option(吃药/Buspirone-15mg)):medication_long]`
 
