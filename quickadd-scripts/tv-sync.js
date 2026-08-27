@@ -27,26 +27,31 @@ module.exports = async (params) => {
     fiveDayCutoff.setDate(fiveDayCutoff.getDate() - 5);
     const cutoffDate = dv.date(formatDate(fiveDayCutoff));
 
-    const getDailyNotes = (startDate) => {
-        if (!startDate) return [];
-        const scanFrom = startDate > cutoffDate ? startDate : cutoffDate;
-        return dv.pages(DAILY_FOLDER)
-            .where(p => p.file.folder.match(/^日记\/\d{4}$/) && p.file.day && p.file.day >= scanFrom)
-            .sort(p => p.file.day, 'asc')
-            .array();
-    };
+    // Pre-read daily notes in the 5-day window once into memory so scanning shows/books is instant
+    const allDailyNotes = dv.pages(DAILY_FOLDER)
+        .where(p => p.file.folder.match(/^日记\/\d{4}$/) && p.file.day && p.file.day >= cutoffDate)
+        .sort(p => p.file.day, 'asc')
+        .array();
 
-    const findLatestProgress = async ({ name, startDate, field }) => {
+    const noteCache = [];
+    for (const note of allDailyNotes) {
+        const noteFile = app.vault.getAbstractFileByPath(note.file.path);
+        if (!noteFile) continue;
+        const content = await app.vault.read(noteFile);
+        noteCache.push({ day: note.file.day, content });
+    }
+
+    const findLatestProgress = ({ name, startDate, field }) => {
+        if (!startDate) return null;
+        const scanFrom = startDate > cutoffDate ? startDate : cutoffDate;
         const escapedName = escapeRegex(name);
         const escapedField = escapeRegex(field);
         const regex = new RegExp(`##\\s+(?:\\d+(?:\\.\\d+)?\\s+)?(?:读书|[^\\n]*)[\\s\\S]*?\\[\\[(?:[^\\]\\|]+\\|)?${escapedName}\\]\\].*?${escapedField}::\\s*(\\d+)`);
         let latestProgress = null;
 
-        for (const note of getDailyNotes(startDate)) {
-            const noteFile = app.vault.getAbstractFileByPath(note.file.path);
-            if (!noteFile) continue;
-            const content = await app.vault.read(noteFile);
-            const match = regex.exec(content);
+        for (const note of noteCache) {
+            if (note.day < scanFrom) continue;
+            const match = regex.exec(note.content);
             if (match) latestProgress = parseInt(match[1], 10);
         }
 
