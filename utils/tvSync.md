@@ -19,22 +19,24 @@ modified_at: 2026-08-24
     async function runSync(fullSync = false) {
         container.empty();
 
-        const syncMeta = dv.page(syncFilePath);
-        const lastSyncRaw = syncMeta.last_sync;
-        const lastSyncDate = lastSyncRaw?.toFormat ? lastSyncRaw : dv.date(String(lastSyncRaw));
+        // Incremental sync rescans recent notes so backfilled/deleted entries can
+        // roll the frontmatter value backward without scanning the whole vault.
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const fiveDayCutoff = new Date(today);
+        fiveDayCutoff.setDate(fiveDayCutoff.getDate() - 5);
+        const cutoffDate = dv.date(`${fiveDayCutoff.getFullYear()}-${String(fiveDayCutoff.getMonth() + 1).padStart(2, '0')}-${String(fiveDayCutoff.getDate()).padStart(2, '0')}`);
 
-        // Shows to process: has 总集数, not complete, not abandoned
+        // Include completed shows: a deleted or corrected daily entry can require
+        // a rollback (for example, 7 -> 4), so completion is not a reason to skip.
         const showPages = dv.pages('"看电视"').where(p => {
             if (!p.总集数) return false;
             if (p.file.tags && p.file.tags.values && p.file.tags.values.some(t => t === '#弃剧' || t === '弃剧')) return false;
-            const watched = p.看过集数 || 0;
-            if (watched >= p.总集数) return false;
             return true;
         });
 
         // Stats for skipped shows
         const all = dv.pages('"看电视"');
-        const skippedComplete = all.where(p => p.总集数 && (p.看过集数 || 0) >= p.总集数).length;
         const skippedNoTotal = all.where(p => !p.总集数).length;
         const skippedAbandoned = all.where(p => p.file.tags && p.file.tags.values && p.file.tags.values.some(t => t === '#弃剧' || t === '弃剧')).length;
 
@@ -58,11 +60,11 @@ modified_at: 2026-08-24
             const startDate = show.开始看日期;
             if (!startDate) { upToDate.push(showName); continue; }
 
-            // Incremental: scan from max(开始看日期, last_sync); Full: scan from 开始看日期
-            let scanFrom = startDate;
-            if (!fullSync && lastSyncDate && lastSyncDate > startDate) {
-                scanFrom = lastSyncDate;
-            }
+            // Incremental: scan the recent window so edits/deletions are visible.
+            // Full: scan from 开始看日期.
+            const scanFrom = fullSync
+                ? startDate
+                : (startDate > cutoffDate ? startDate : cutoffDate);
 
             const dailyNotes = dv.pages('"日记"')
                 .where(p => {
@@ -85,7 +87,6 @@ modified_at: 2026-08-24
                     const match = regex.exec(content);
                     if (match) {
                         latestProgress = parseInt(match[1]);
-                        if (latestProgress >= show.总集数) break;
                     }
                 } catch (e) {}
             }
@@ -107,7 +108,6 @@ modified_at: 2026-08-24
         }
 
         // Update last_sync to today
-        const today = new Date();
         const todayStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
         await app.fileManager.processFrontMatter(syncFile, fm => {
             fm.last_sync = todayStr;
@@ -127,7 +127,7 @@ modified_at: 2026-08-24
         }
 
         container.createEl('p', {
-            text: `— 无变化: ${upToDate.length} 部 | 已完成跳过: ${skippedComplete} 部 | 无总集数跳过: ${skippedNoTotal} 部 | 弃剧跳过: ${skippedAbandoned} 部`
+            text: `— 无变化: ${upToDate.length} 部 | 无总集数跳过: ${skippedNoTotal} 部 | 弃剧跳过: ${skippedAbandoned} 部`
         });
         container.createEl('p', { text: `上次同步: ${todayStr}` });
 

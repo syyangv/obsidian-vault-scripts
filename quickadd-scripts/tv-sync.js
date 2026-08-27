@@ -19,8 +19,8 @@ module.exports = async (params) => {
 
     const formatDate = (date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 
-    // Scan a rolling 5-day window so recent backfilled daily-note edits are picked up
-    // without rescanning older daily notes on every sync.
+    // Scan a rolling 5-day window so recent backfilled/deleted daily-note edits are
+    // picked up without rescanning older daily notes on every sync.
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const fiveDayCutoff = new Date(today);
@@ -53,10 +53,12 @@ module.exports = async (params) => {
         return latestProgress;
     };
 
+    // Include completed shows: a deleted or corrected daily entry can require a
+    // rollback (for example, 7 -> 4), so completion is not a reason to skip sync.
     const showPages = dv.pages('"看电视"').where(p => {
         if (!p.总集数) return false;
         if (p.file.tags?.values?.some(t => t === '#弃剧' || t === '弃剧')) return false;
-        return toNumber(p.看过集数) < toNumber(p.总集数);
+        return true;
     }).array();
 
     const bookPages = dv.pages('"知识库/读书笔记"').where(p => {
