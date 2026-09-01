@@ -81,7 +81,7 @@ modified_at: <%* tR += tp.date.now("YYYY-MM-DD") %>
 
 `BUTTON[qa_tv]` `BUTTON[qa_book]`
 
-![[importantDates]]
+![[Helper/utils/importantDates]]
 
 ![[Helper/utils/onThisDay]]
 
