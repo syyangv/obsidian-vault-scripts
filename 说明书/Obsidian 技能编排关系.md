@@ -11,52 +11,42 @@ modified_at: 2026-07-19
 
 ```mermaid
 graph TD
-    subgraph L1["Level 1 · Vault 总入口 (Top-Level Orchestrator)"]
-        TOP["★ Obsidian Orchestrator<br/>（全库级请求总入口，负责意图识别与垂直域分流）"]
+    subgraph L1["Level 1 · Vault 总入口 (Top-Level Router)"]
+        TOP["★ Obsidian Orchestrator<br/>（全库请求分流）"]
     end
 
     subgraph L2["Level 2 · 垂直功能域编排器 (Domain Orchestrators)"]
-        TO["▣ obsidian-task-skill-orchestrator<br/>【任务域总舵手】<br/>TaskNotes · Tasks 插件 · 复选框三态 · 隔离边界"]
-        YG["▣ yearly-glance-calendar<br/>【日历与假期域总舵手】<br/>年度日历 · 请假计划 · 节假日同步 · Plumbob 月格"]
+        TO["▣ obsidian-task-skill-orchestrator<br/>【任务域】TaskNotes · Tasks · 复选框"]
+        YG["▣ yearly-glance-calendar<br/>【日历域】年度日历 · 请假 · 节假日"]
     end
 
     subgraph L3["Level 3 · 基础设施底层技能 (Infrastructure Anchors)"]
-        V["● obsidian-visual-design<br/>（CSS · 主题 · Snippets · 样式）"]
-        PD["● obsidian-plugin-dev<br/>（插件配置 · Code/Data · 社区 Fork）"]
-        M["● obsidian-macros<br/>（QuickAdd · Meta Bind · 自动化脚本）"]
+        V["● obsidian-visual-design<br/>（CSS · 主题 · Snippets）"]
+        PD["● obsidian-plugin-dev<br/>（插件开发 · 调试 · 配置）"]
+        M["● obsidian-macros<br/>（QuickAdd · Meta Bind · 脚本）"]
     end
 
     %% L1 委派给 L2
-    TOP -->|任务/待办/TaskNotes/清单| TO
-    TOP -->|日历/假期/请假/行程| YG
-    TOP -.->|纯脚本/宏自动化| M
-    TOP -.->|纯 CSS/视觉调整| V
-    TOP -.->|通用插件开发| PD
+    TOP -->|任务/待办/TaskNotes| TO
+    TOP -->|日历/假期/请假| YG
+    TOP -.->|纯脚本| M
+    TOP -.->|纯 CSS| V
+    TOP -.->|插件开发| PD
 
     %% L2 编排 L3
-    TO -->|复选框样式 / Plumbob 主题 / 三态 CSS / Badge| V
-    TO -->|TaskNotes 插件配置 / Tasks 行为 / 排除规则| PD
-    TO -->|QuickAdd 任务录入 / Meta Bind 状态按钮 / Dataview 脚本| M
+    TO -->|复选框与三态样式| V
+    TO -->|TaskNotes/Tasks 插件| PD
+    TO -->|任务宏与汇总脚本| M
 
-    YG -->|plumbob 日历 CSS/主题| V
-    YG -->|fork 插件 yearly-glance-custom| PD
-    YG -->|QuickAdd 脚本 / trackHolidays / syncCssclass| M
+    YG -->|月格与假期 CSS| V
+    YG -->|yearly-glance 插件| PD
+    YG -->|请假追踪脚本/宏| M
 
-    %% 基础设施锚点之间的声明式路由
-    M -->|CSS / 样式| V
-    M -->|社区插件| PD
-    M -->|脚本放哪| S0["Helper 脚本地图 §0"]
-
-    %% 兄弟技能辅助引用
-    PD -.-> V
-    UG["obsidian-update-guard"] -.-> V
-    MS["obsidian-mobile-sync"] -.-> PD
-    V -.-> MS
-    NAV["obsidian-navigation"] -.-> CLI["obsidian-cli"]
-    NAV -.-> MD["obsidian-markdown"]
-    NAV -.-> PD
-    CC["obsidian-conflict-cleaner"] -.-> NAV
+    %% 基础设施锚点协同
+    M -->|样式| V
+    M -->|插件| PD
 ```
+
 
 ---
 
