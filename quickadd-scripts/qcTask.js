@@ -18,7 +18,7 @@ module.exports = async (params) => {
 
     const projectFiles = app.vault.getFiles()
         .filter(f => f.path.startsWith("Projects/") && f.extension === "md" && f.name !== "Projects.md")
-        .map(f => ({ label: `Project/${f.basename}`, value: `#Project/${f.basename}` }));
+        .map(f => ({ label: `Project/${f.basename}`, value: `#Project/${f.basename}`, basename: f.basename }));
 
     // Deduplicate by tag value and sort
     const tagMap = new Map();
@@ -89,11 +89,36 @@ module.exports = async (params) => {
         }
     }
 
-    // Check if the selected tag matches an existing project file in Projects/
-    const matchedProject = projectFiles.find(p => p.value === selectedTag);
+    // Auto-structured-sync pools (epaper, Structured, 系统) must always remain inline
+    const syncPools = ["#Project/epaper", "#Project/Structured", "#Project/系统"];
+    const isSyncPool = syncPools.includes(selectedTag);
 
-    if (matchedProject) {
-        // --- Create directly in TaskNotes/Tasks/ ---
+    // Check if the selected tag matches an existing project note in Projects/
+    let matchedProjectName = "";
+    if (selectedTag.startsWith("#Project/")) {
+        const projName = selectedTag.replace("#Project/", "");
+        const projectFile = app.vault.getAbstractFileByPath(`Projects/${projName}.md`);
+        if (projectFile) {
+            matchedProjectName = projName;
+        }
+    }
+
+    let taskMode = "inline";
+    if (matchedProjectName && !isSyncPool) {
+        // Offer choice between quick inline task and standalone TaskNote
+        const modeChoice = await quickAddApi.suggester(
+            [
+                `⚡ Inline Task (Quick Capture → Project/${matchedProjectName})`,
+                `📦 Standalone TaskNote (TaskNotes/Tasks/${taskText.slice(0, 30)}...)`
+            ],
+            ["inline", "tasknote"]
+        );
+        if (modeChoice === undefined) return;
+        taskMode = modeChoice;
+    }
+
+    if (taskMode === "tasknote" && matchedProjectName) {
+        // --- Create Standalone TaskNote in TaskNotes/Tasks/ ---
         const taskFolder = "TaskNotes/Tasks";
         if (!app.vault.getAbstractFileByPath(taskFolder)) {
             await app.vault.createFolder(taskFolder);
@@ -132,7 +157,7 @@ module.exports = async (params) => {
         }
 
         frontmatterLines.push("projects:");
-        frontmatterLines.push(`  - "[[${matchedProject.basename}]]"`);
+        frontmatterLines.push(`  - "[[${matchedProjectName}]]"`);
         frontmatterLines.push(`dateCreated: ${isoTimestamp}`);
         frontmatterLines.push(`dateModified: ${isoTimestamp}`);
         frontmatterLines.push("tags:");
@@ -150,7 +175,6 @@ module.exports = async (params) => {
     }
 
     // --- Otherwise, append inline task to Quick Capture.md ---
-    // Build task line
     const tagPart = selectedTag ? " " + selectedTag : "";
     const startPart = startDateStr ? " 🛫 " + startDateStr : "";
     const taskLine = "- [ ] " + taskText + startPart + " ✍️ " + todayStr + tagPart;
