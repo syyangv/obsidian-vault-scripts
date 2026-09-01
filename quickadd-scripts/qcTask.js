@@ -89,12 +89,73 @@ module.exports = async (params) => {
         }
     }
 
+    // Check if the selected tag matches an existing project file in Projects/
+    const matchedProject = projectFiles.find(p => p.value === selectedTag);
+
+    if (matchedProject) {
+        // --- Create directly in TaskNotes/Tasks/ ---
+        const taskFolder = "TaskNotes/Tasks";
+        if (!app.vault.getAbstractFileByPath(taskFolder)) {
+            await app.vault.createFolder(taskFolder);
+        }
+
+        const getTimezoneOffsetString = (d) => {
+            const offset = -d.getTimezoneOffset();
+            const sign = offset >= 0 ? "+" : "-";
+            const pad = (num) => String(Math.floor(Math.abs(num))).padStart(2, "0");
+            return `${sign}${pad(offset / 60)}:${pad(offset % 60)}`;
+        };
+
+        const now = new Date();
+        const isoTimestamp = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}T${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}:${String(now.getSeconds()).padStart(2, "0")}.000${getTimezoneOffsetString(now)}`;
+
+        // Sanitize title for filename
+        const safeBase = taskText.replace(/[\\/:*?"<>|]/g, " ").replace(/\s+/g, " ").trim();
+        let fileName = safeBase || "Untitled Task";
+        let targetPath = `${taskFolder}/${fileName}.md`;
+        let counter = 1;
+        while (app.vault.getAbstractFileByPath(targetPath)) {
+            fileName = `${safeBase} ${counter}`;
+            targetPath = `${taskFolder}/${fileName}.md`;
+            counter++;
+        }
+
+        const frontmatterLines = [
+            "---",
+            `title: ${JSON.stringify(taskText)}`,
+            "status: open",
+            "priority: normal"
+        ];
+
+        if (startDateStr) {
+            frontmatterLines.push(`scheduled: ${startDateStr}`);
+        }
+
+        frontmatterLines.push("projects:");
+        frontmatterLines.push(`  - "[[${matchedProject.basename}]]"`);
+        frontmatterLines.push(`dateCreated: ${isoTimestamp}`);
+        frontmatterLines.push(`dateModified: ${isoTimestamp}`);
+        frontmatterLines.push("tags:");
+        frontmatterLines.push("  - tasknotes");
+        frontmatterLines.push(`modified_at: ${todayStr}`);
+        frontmatterLines.push("---");
+        frontmatterLines.push("");
+        frontmatterLines.push(taskText + ".");
+        frontmatterLines.push("");
+
+        const fileContent = frontmatterLines.join("\n");
+        await app.vault.create(targetPath, fileContent);
+        new Notice(`✅ TaskNote created: ${fileName}`);
+        return;
+    }
+
+    // --- Otherwise, append inline task to Quick Capture.md ---
     // Build task line
     const tagPart = selectedTag ? " " + selectedTag : "";
     const startPart = startDateStr ? " 🛫 " + startDateStr : "";
     const taskLine = "- [ ] " + taskText + startPart + " ✍️ " + todayStr + tagPart;
 
-    const file = app.vault.getAbstractFileByPath("Quick Capture.md");
+    const file = app.vault.getAbstractFileByPath("待办事项/Quick Capture.md") || app.metadataCache.getFirstLinkpathDest("Quick Capture", "");
     if (!file) {
         new Notice("Quick Capture.md not found");
         return;
