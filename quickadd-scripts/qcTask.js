@@ -103,13 +103,14 @@ module.exports = async (params) => {
         }
     }
 
-    let taskMode = "inline";
+ let taskMode = "inline";
+ let taskDescription = taskText;
     if (matchedProjectName && !isSyncPool) {
-        // Offer choice between quick inline task and standalone TaskNote
+        // Offer choice between Project checkbox only or Project checkbox + TaskNote
         const modeChoice = await quickAddApi.suggester(
             [
-                `⚡ Inline Task (Quick Capture → Project/${matchedProjectName})`,
-                `📦 Standalone TaskNote (TaskNotes/Tasks/${taskText.slice(0, 30)}...)`
+                "⚡ Project checkbox (Project/" + matchedProjectName + ")",
+                "📦 Project checkbox + TaskNote (" + taskText.slice(0, 30) + "...)",
             ],
             ["inline", "tasknote"]
         );
@@ -170,35 +171,60 @@ module.exports = async (params) => {
 
         const fileContent = frontmatterLines.join("\n");
         await app.vault.create(targetPath, fileContent);
-        new Notice(`✅ TaskNote created: ${fileName}`);
-        return;
+ taskDescription = "[[TaskNotes/Tasks/" + targetPath.replace(/\.md$/, "") + "|" + taskText + "]]"
+ new Notice("TaskNote created: " + fileName);
     }
 
-    // --- Otherwise, append inline task to Quick Capture.md ---
+    // --- Project-tagged inline tasks belong in Projects/<project>.md. ---
+    // No-project and protected sync-pool captures retain the Quick Capture
+    // fallback below.
     const tagPart = selectedTag ? " " + selectedTag : "";
     const startPart = startDateStr ? " 🛫 " + startDateStr : "";
-    const taskLine = "- [ ] " + taskText + startPart + " ✍️ " + todayStr + tagPart;
+ const createdPart = matchedProjectName ? " ➕ " + todayStr : "";
+ const taskLine = "- [ ] " + taskDescription + startPart + " ✍️ " + todayStr + createdPart + tagPart;
 
-    const file = app.vault.getAbstractFileByPath("待办事项/Quick Capture.md") || app.metadataCache.getFirstLinkpathDest("Quick Capture", "");
+    const projectFile = matchedProjectName
+        ? app.vault.getAbstractFileByPath("Projects/" + matchedProjectName + ".md")
+        : null;
+    const file = projectFile
+        || app.vault.getAbstractFileByPath("待办事项/Quick Capture.md")
+        || app.metadataCache.getFirstLinkpathDest("Quick Capture", "");
     if (!file) {
         new Notice("Quick Capture.md not found");
         return;
     }
 
     let content = await app.vault.read(file);
-    
-    // Try to insert after the quick_capture_controls embed (Quick Capture.md)
+
+    if (projectFile) {
+        const tasksHeading = "\n## Tasks";
+        const headingIndex = content.indexOf(tasksHeading);
+        if (headingIndex !== -1) {
+            content = content.slice(0, headingIndex + 1) + taskLine + "\n" + content.slice(headingIndex + 1);
+        } else {
+            content = content.trimEnd() + "\n\n" + taskLine + "\n";
+        }
+        await app.vault.modify(file, content);
+        new Notice("Task added to Projects/" + matchedProjectName);
+        return;
+    }
+
+    // Try to insert after the quick_capture_controls embed.
     let replaced = content.replace(
         /(!\[\[quick_capture_controls\]\]\n)/,
         "$1" + taskLine + "\n"
     );
 
-    // Fall back to inserting after the BUTTON[add_task] line (daily notes)
+    // Fall back to inserting after the BUTTON[add_task] line.
     if (replaced === content) {
-        replaced = content.replace(
-            /(`BUTTON\[add_task\]`\n+)/,
-            "$1" + taskLine + "\n"
-        );
+        const markerText = "BUTTON[add_task]";
+        const markerIndex = content.indexOf(markerText);
+        if (markerIndex !== -1) {
+            const lineEnd = content.indexOf("\n", markerIndex);
+            if (lineEnd !== -1) {
+                replaced = content.slice(0, lineEnd + 1) + taskLine + "\n" + content.slice(lineEnd + 1);
+            }
+        }
     }
 
     if (replaced === content) {
