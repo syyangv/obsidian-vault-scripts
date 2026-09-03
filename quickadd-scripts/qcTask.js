@@ -12,20 +12,10 @@ module.exports = async (params) => {
     ];
 
     const allTags = Object.keys(app.metadataCache.getTags());
-    const existingProjectTags = allTags
+    const projectTags = allTags
         .filter(t => t.startsWith("#Project/"))
+        .sort((a, b) => a.localeCompare(b))
         .map(t => ({ label: t.slice(1), value: t }));
-
-    const projectFiles = app.vault.getFiles()
-        .filter(f => f.path.startsWith("Projects/") && f.extension === "md" && f.name !== "Projects.md")
-        .map(f => ({ label: `Project/${f.basename}`, value: `#Project/${f.basename}`, basename: f.basename }));
-
-    // Deduplicate by tag value and sort
-    const tagMap = new Map();
-    [...existingProjectTags, ...projectFiles].forEach(item => tagMap.set(item.value, item.label));
-    const projectTags = Array.from(tagMap.entries())
-        .sort((a, b) => a[0].localeCompare(b[0]))
-        .map(([value, label]) => ({ label, value }));
 
     const tagOptions = [...staticTags, ...projectTags];
 
