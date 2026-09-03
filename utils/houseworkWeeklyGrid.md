@@ -445,21 +445,31 @@ const applyZoom = (z, scrollTargetX) => {
     labelSvg.setAttribute('width', LABEL_W * zoomLevel);
     labelSvg.setAttribute('height', gh);
     if (scrollTargetX !== undefined) {
-        scrollBox.scrollLeft = scrollTargetX * zoomLevel;
+        const target = Math.max(0, scrollTargetX * zoomLevel);
+        scrollBox.scrollLeft = target;
+        requestAnimationFrame(() => {
+            scrollBox.scrollLeft = target;
+        });
     }
 };
 
 mkBtn('−', () => {
     const cx = scrollBox.scrollLeft + scrollBox.clientWidth / 2;
     const ratio = cx / (GRID_W * zoomLevel);
-    applyZoom(zoomLevel * 0.75);
-    scrollBox.scrollLeft = ratio * GRID_W * zoomLevel - scrollBox.clientWidth / 2;
+    const newZ = zoomLevel * 0.75;
+    applyZoom(newZ);
+    requestAnimationFrame(() => {
+        scrollBox.scrollLeft = ratio * GRID_W * newZ - scrollBox.clientWidth / 2;
+    });
 });
 mkBtn('+', () => {
     const cx = scrollBox.scrollLeft + scrollBox.clientWidth / 2;
     const ratio = cx / (GRID_W * zoomLevel);
-    applyZoom(zoomLevel * 1.33);
-    scrollBox.scrollLeft = ratio * GRID_W * zoomLevel - scrollBox.clientWidth / 2;
+    const newZ = zoomLevel * 1.33;
+    applyZoom(newZ);
+    requestAnimationFrame(() => {
+        scrollBox.scrollLeft = ratio * GRID_W * newZ - scrollBox.clientWidth / 2;
+    });
 });
 
 const sep = bar.createEl('span');
@@ -469,9 +479,9 @@ const zoomToRecent = () => {
     const ago60 = addDays(today, -60);
     const si = Math.max(0, weeks.findIndex(w => w.mon >= ago60));
     const ei = Math.min(WEEKS, cwi + 4);
-    const cw = (scrollBox.clientWidth || 600) - LABEL_W * zoomLevel;
-    const rw = (ei - si) * STEP + 20;
-    const z = Math.max(0.5, Math.min(1.2, cw / rw));
+    const rangeWeeks = Math.max(1, ei - si);
+    const W = scrollBox.clientWidth || 600;
+    const z = Math.max(0.75, Math.min(1.4, W / (LABEL_W + rangeWeeks * STEP + 20)));
     applyZoom(z, si * STEP);
 };
 const recentBtn = mkBtn('近期', zoomToRecent);
@@ -479,18 +489,18 @@ const recentBtn = mkBtn('近期', zoomToRecent);
 mkBtn('近3月', () => {
     const ago = addDays(today, -90);
     const startIdx = Math.max(0, weeks.findIndex(w => w.mon >= ago));
-    const containerW = (scrollBox.clientWidth || 600) - LABEL_W * zoomLevel;
-    const rangeW = (WEEKS - startIdx) * STEP + 20;
-    const z = Math.max(0.5, Math.min(4, containerW / rangeW));
+    const rangeWeeks = Math.max(1, WEEKS - startIdx);
+    const W = scrollBox.clientWidth || 600;
+    const z = Math.max(0.75, Math.min(1.4, W / (LABEL_W + rangeWeeks * STEP + 20)));
     applyZoom(z, startIdx * STEP);
 });
 
 const quarters = [['Q1',0,13],['Q2',13,26],['Q3',26,39],['Q4',39,WEEKS]];
 for (const [label, s, e] of quarters) {
     mkBtn(label, () => {
-        const containerW = (scrollBox.clientWidth || 600) - LABEL_W * zoomLevel;
-        const rangeW = (e - s) * STEP;
-        const z = Math.max(0.5, Math.min(4, containerW / rangeW));
+        const W = scrollBox.clientWidth || 600;
+        const quarterWeeks = e - s;
+        const z = Math.max(0.75, Math.min(1.5, W / (LABEL_W + quarterWeeks * STEP + 10)));
         applyZoom(z, s * STEP);
     });
 }
