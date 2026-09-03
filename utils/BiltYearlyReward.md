@@ -127,16 +127,42 @@ try {
         });
     }
 
-    const rows = allKeys.map(key => {
+    const rawRows = allKeys.map(key => {
         const displayName = rn[key] || camelToTitle(key);
         const credit = Math.round(creditTotals[key] || 0);
         const expense = mirror.includes(key) ? credit : Math.round(yearTotals[key] || 0);
         const isNP = nonPct.includes(key);
         const net = isNP ? 0 : expense - credit;
         const pct = expense > 0 ? (credit / expense) * 100 : 0;
-        const bar = isNP ? `$${credit}` : createProgressBar(pct);
-        return [displayName, expense, credit, net, bar];
+        return { displayName, expense, credit, net, pct, isNP };
     });
+
+    rawRows.sort((a, b) => {
+        if (a.isNP !== b.isNP) return a.isNP ? 1 : -1;
+        if (a.isNP && b.isNP) return b.credit - a.credit || a.displayName.localeCompare(b.displayName);
+
+        const aDone = a.pct >= 100 || a.expense <= 0;
+        const bDone = b.pct >= 100 || b.expense <= 0;
+
+        if (aDone !== bDone) return aDone ? 1 : -1;
+
+        if (!aDone) {
+            if (Math.abs(a.pct - b.pct) > 0.01) return a.pct - b.pct;
+            if (b.net !== a.net) return b.net - a.net;
+            return a.displayName.localeCompare(b.displayName);
+        } else {
+            if (Math.abs(a.pct - b.pct) > 0.01) return a.pct - b.pct;
+            return a.displayName.localeCompare(b.displayName);
+        }
+    });
+
+    const rows = rawRows.map(r => [
+        r.displayName,
+        r.expense,
+        r.credit,
+        r.net,
+        r.isNP ? `$${r.credit}` : createProgressBar(r.pct)
+    ]);
 
     const totalExp = rows.reduce((s, r) => s + (typeof r[1] === 'number' ? r[1] : 0), 0);
     const totalCred = rows.reduce((s, r) => s + (typeof r[2] === 'number' ? r[2] : 0), 0);
