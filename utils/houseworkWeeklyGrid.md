@@ -511,6 +511,22 @@ scrollBox.addEventListener('wheel', (e) => {
 }, { passive: false });
 
 requestAnimationFrame(() => {
+    const cardContent = dv.container.closest('.v6-card-content');
+    if (cardContent) {
+        const adjustHeight = () => {
+            const h = cardContent.clientHeight;
+            if (h > 100) {
+                const bh = bar.offsetHeight || 32;
+                const avail = Math.max(120, h - bh - 8);
+                scrollBox.style.maxHeight = avail + 'px';
+            }
+        };
+        adjustHeight();
+        if (window.ResizeObserver) {
+            const ro = new ResizeObserver(adjustHeight);
+            ro.observe(cardContent);
+        }
+    }
     zoomToRecent();
     recentBtn.style.cssText = btnActiveStyle;
 });
