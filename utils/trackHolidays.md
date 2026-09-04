@@ -356,7 +356,6 @@ modified_at: 2026-09-03
                 return true;
             });
         }
-        const __actualDates = new Set(holidayRecords.map(r => r.date));
 
         // 依据去重后的记录重新校准各月统计，防止冲突/重复日记副本导致月度虚增
         months.forEach(m => {
@@ -754,7 +753,9 @@ modified_at: 2026-09-03
         // Build holiday list HTML in four columns
         let holidayListHtml;
         // 实际(背景填充) + 计划(同色边框) 合并，按日期排序
-        const listRecords = [...holidayRecords, ...plannedRecords.filter(p => !__actualDates.has(p.date))]
+        const __actualDates = new Set((holidayRecords || []).map(r => r.date));
+        const __plannedFiltered = (plannedRecords || []).filter(p => !__actualDates.has(p.date));
+        const listRecords = [...(holidayRecords || []), ...__plannedFiltered]
             .sort((a, b) => a.date.localeCompare(b.date));
         // 编号按额度类别累计：PTO + 公共假期 共用年假额度(1..annualLeaveLimit)，病假单独从 1 重新开始
         { let __hc = 0, __sc = 0; for (const r of listRecords) { r.seq = (r.type === 'sick') ? ++__sc : ++__hc; } }
@@ -923,7 +924,7 @@ modified_at: 2026-09-03
             <!-- Holiday List -->
             <details style="margin-top: 15px; border: 1px solid var(--background-modifier-border); border-radius: 6px; padding: 10px;">
                 <summary style="cursor: pointer; font-weight: 600; color: var(--text-normal); padding: 5px;">
-                    📅 休假明细 (${holidayRecords.filter(r => r.type !== 'sick').length} 实际${plannedRecords.filter(r => r.type !== 'sick').length > 0 ? ` + ${plannedRecords.filter(r => r.type !== 'sick').length} 计划` : ''}${holidayRecords.filter(r => r.type === 'sick').length + plannedRecords.filter(r => r.type === 'sick').length > 0 ? ` · ${holidayRecords.filter(r => r.type === 'sick').length + plannedRecords.filter(r => r.type === 'sick').length} 病假` : ''})
+                    📅 休假明细 (${(holidayRecords || []).filter(r => r.type !== 'sick').length} 实际${__plannedFiltered.filter(r => r.type !== 'sick').length > 0 ? ` + ${__plannedFiltered.filter(r => r.type !== 'sick').length} 计划` : ''}${(holidayRecords || []).filter(r => r.type === 'sick').length + __plannedFiltered.filter(r => r.type === 'sick').length > 0 ? ` · ${(holidayRecords || []).filter(r => r.type === 'sick').length + __plannedFiltered.filter(r => r.type === 'sick').length} 病假` : ''})
                 </summary>
                 <div style="margin-top: 10px; max-height: 300px; overflow-y: auto;">
                     ${holidayListHtml}
