@@ -93,7 +93,7 @@ modified_at: 2026-07-20
         // ========================================
         // 缓存工具函数 Cache Utility Functions
         // ========================================
-        const CACHE_KEY = 'track-holidays-data-v2';
+        const CACHE_KEY = 'track-holidays-data-v3';
         const CACHE_TTL_MINUTES = 240;
 
         const loadFromCache = (forYear) => {
@@ -344,9 +344,6 @@ modified_at: 2026-07-20
             }
         }
 
-        saveToCache(year, monthlyData, monthlyDetails, holidayRecords);
-        } // end of else (not cached)
-
         // Sort holiday records by date
         holidayRecords.sort((a, b) => a.date.localeCompare(b.date));
         // 去重保险：同一 date+type 只保留一条（防御历史缓存或重复扫描）
@@ -359,6 +356,25 @@ modified_at: 2026-07-20
                 return true;
             });
         }
+
+        // 依据去重后的记录重新校准各月统计，防止冲突/重复日记副本导致月度虚增
+        months.forEach(m => {
+            monthlyData[m] = 0;
+            monthlyDetails[m] = { total: 0, pto: 0, public: 0, sick: 0 };
+        });
+        for (const r of holidayRecords) {
+            const m = r.date.substring(0, 7);
+            if (monthlyDetails[m] && monthlyDetails[m][r.type] !== undefined) {
+                monthlyDetails[m][r.type]++;
+                if (r.type === 'pto' || r.type === 'public') {
+                    monthlyData[m]++;
+                    monthlyDetails[m].total++;
+                }
+            }
+        }
+
+        saveToCache(year, monthlyData, monthlyDetails, holidayRecords);
+        } // end of else (not cached)
 
         // ===== 去年同期轨迹 (Previous Year Trajectory) =====
         const prevYear = String(parseInt(year) - 1);
@@ -510,6 +526,7 @@ modified_at: 2026-07-20
         const plannedRecords = []; // 未来计划（PTO + 病假 + 公共假期），用于明细列表（边框样式）
         // 自带星期计算：getDayOfWeek 定义在 cache-miss else 块内，命中缓存时不存在 → 这里独立实现，避免 ReferenceError 中断解析
         const __dow = (s) => { const p = String(s).split('-'); if (p.length !== 3) return '?'; const d = new Date(+p[0], +p[1] - 1, +p[2]); return isNaN(d.getTime()) ? '?' : ['日','一','二','三','四','五','六'][d.getDay()]; };
+        const __existingDiaryDates = new Set(app.vault.getFiles().filter(f => f.path.startsWith('日记/' + year + '/') && f.extension === 'md').map(f => f.basename.substring(0, 10)));
         try {
             // adapter.read = 直读磁盘，绕过 Obsidian cachedRead（外部修改的文件 cachedRead 会返回旧内容）
             const planRaw = await app.vault.adapter.read(_planFile);
@@ -517,7 +534,7 @@ modified_at: 2026-07-20
                 for (const line of planRaw.split(/\r?\n/)) {
                     const cells = line.split('|').map(c => c.trim()).filter(Boolean);
                     const dateCell = cells.find(c => /^\d{4}-\d{2}-\d{2}$/.test(c));
-                    if (!dateCell || !dateCell.startsWith(year + '-') || dateCell <= __todayIso) continue;
+                    if (!dateCell || !dateCell.startsWith(year + '-') || dateCell <= __todayIso || __existingDiaryDates.has(dateCell)) continue;
                     const isPto = cells.some(c => c.toLowerCase() === 'pto');
                     const isSick = cells.some(c => c === '病假' || c.toLowerCase() === 'sick');
                     const isPublic = cells.some(c => c === '公共假期' || c.toLowerCase() === 'public');
@@ -730,7 +747,7 @@ modified_at: 2026-07-20
         // Build holiday list HTML in four columns
         let holidayListHtml;
         // 实际(背景填充) + 计划(同色边框) 合并，按日期排序
-        const listRecords = [...holidayRecords, ...plannedRecords]
+        const listRecords = [...holidayRecords, ...plannedRecords.filter(p => !__actualDates.has(p.date))]
             .sort((a, b) => a.date.localeCompare(b.date));
         // 编号按额度类别累计：PTO + 公共假期 共用年假额度(1..annualLeaveLimit)，病假单独从 1 重新开始
         { let __hc = 0, __sc = 0; for (const r of listRecords) { r.seq = (r.type === 'sick') ? ++__sc : ++__hc; } }
@@ -899,7 +916,7 @@ modified_at: 2026-07-20
             <!-- Holiday List -->
             <details style="margin-top: 15px; border: 1px solid var(--background-modifier-border); border-radius: 6px; padding: 10px;">
                 <summary style="cursor: pointer; font-weight: 600; color: var(--text-normal); padding: 5px;">
-                    📅 休假明细 (${holidayRecords.length} 实际${plannedRecords.length > 0 ? ` + ${plannedRecords.length} 计划` : ''})
+                    📅 休假明细 (${holidayRecords.filter(r => r.type !== 'sick').length} 实际${plannedRecords.filter(r => r.type !== 'sick').length > 0 ? ` + ${plannedRecords.filter(r => r.type !== 'sick').length} 计划` : ''}${holidayRecords.filter(r => r.type === 'sick').length + plannedRecords.filter(r => r.type === 'sick').length > 0 ? ` · ${holidayRecords.filter(r => r.type === 'sick').length + plannedRecords.filter(r => r.type === 'sick').length} 病假` : ''})
                 </summary>
                 <div style="margin-top: 10px; max-height: 300px; overflow-y: auto;">
                     ${holidayListHtml}
