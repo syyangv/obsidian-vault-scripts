@@ -37,7 +37,7 @@ module.exports = async (params) => {
     // Helper to format date in local timezone (YYYY-MM-DD)
     const formatDate = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
-    // Ask about start date (use local timezone, not UTC)
+    // Ask about scheduled date (use local timezone, not UTC)
     const today = new Date();
     const todayStr = formatDate(today);
 
@@ -56,9 +56,9 @@ module.exports = async (params) => {
     const nextMonth = new Date(today.getFullYear(), today.getMonth() + 1, 1);
     const nextMonthStr = formatDate(nextMonth);
 
-    const startDateChoice = await quickAddApi.suggester(
+    const scheduledDateChoice = await quickAddApi.suggester(
         [
-            "No start date",
+            "No scheduled date",
             `Today (${todayStr})`,
             `Tomorrow (${tomorrowStr})`,
             `Next Monday (${nextMondayStr})`,
@@ -67,24 +67,24 @@ module.exports = async (params) => {
         ],
         ["none", "today", "tomorrow", "nextmonday", "nextmonth", "pick"]
     );
-    if (startDateChoice === undefined) return;
+    if (scheduledDateChoice === undefined) return;
 
-    let startDateStr = "";
+    let scheduledDateStr = "";
 
-    if (startDateChoice === "today") {
-        startDateStr = todayStr;
-    } else if (startDateChoice === "tomorrow") {
-        startDateStr = tomorrowStr;
-    } else if (startDateChoice === "nextmonday") {
-        startDateStr = nextMondayStr;
-    } else if (startDateChoice === "nextmonth") {
-        startDateStr = nextMonthStr;
-    } else if (startDateChoice === "pick") {
-        const dateInput = await quickAddApi.inputPrompt("Start date (YYYY-MM-DD)");
+    if (scheduledDateChoice === "today") {
+        scheduledDateStr = todayStr;
+    } else if (scheduledDateChoice === "tomorrow") {
+        scheduledDateStr = tomorrowStr;
+    } else if (scheduledDateChoice === "nextmonday") {
+        scheduledDateStr = nextMondayStr;
+    } else if (scheduledDateChoice === "nextmonth") {
+        scheduledDateStr = nextMonthStr;
+    } else if (scheduledDateChoice === "pick") {
+        const dateInput = await quickAddApi.inputPrompt("Scheduled date (YYYY-MM-DD)");
         if (dateInput && /^\d{4}-\d{2}-\d{2}$/.test(dateInput)) {
-            startDateStr = dateInput;
+            scheduledDateStr = dateInput;
         } else if (dateInput) {
-            new Notice("Invalid date format, skipping start date");
+            new Notice("Invalid date format, skipping scheduled date");
         }
     }
 
@@ -152,8 +152,8 @@ module.exports = async (params) => {
             "priority: normal"
         ];
 
-        if (startDateStr) {
-            frontmatterLines.push(`scheduled: ${startDateStr}`);
+        if (scheduledDateStr) {
+            frontmatterLines.push(`scheduled: ${scheduledDateStr}`);
         }
 
         frontmatterLines.push("projects:");
@@ -178,9 +178,9 @@ module.exports = async (params) => {
     // No-project and protected sync-pool captures retain the Quick Capture
     // fallback below.
     const tagPart = selectedTag ? " " + selectedTag : "";
-    const startPart = startDateStr ? " 🛫 " + startDateStr : "";
+    const scheduledPart = scheduledDateStr ? " ⏳ " + scheduledDateStr : "";
  const createdPart = matchedProjectName ? " ➕ " + todayStr : "";
- const taskLine = "- [ ] " + taskDescription + startPart + " ✍️ " + todayStr + createdPart + tagPart;
+ const taskLine = "- [ ] " + taskDescription + scheduledPart + " ✍️ " + todayStr + createdPart + tagPart;
 
     const projectFile = matchedProjectName
         ? app.vault.getAbstractFileByPath("Projects/" + matchedProjectName + ".md")

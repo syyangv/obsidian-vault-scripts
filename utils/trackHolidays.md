@@ -1,5 +1,5 @@
 ---
-modified_at: 2026-07-20
+modified_at: 2026-09-03
 ---
 
 ```dataviewjs
@@ -356,6 +356,7 @@ modified_at: 2026-07-20
                 return true;
             });
         }
+        const __actualDates = new Set(holidayRecords.map(r => r.date));
 
         // 依据去重后的记录重新校准各月统计，防止冲突/重复日记副本导致月度虚增
         months.forEach(m => {
@@ -444,17 +445,23 @@ modified_at: 2026-07-20
                     .where(p => p && p.file && p.file.name &&
                            typeof p.file.name === 'string' &&
                            p.file.name.startsWith(prevYear + '-'));
+                const seenPrev = new Set();
                 for (let page of pp) {
                     try {
                         if (!page?.file?.name) continue;
                         const fn = _ss(page.file.name);
                         if (fn.length < 10) continue;
+                        const dateStr = fn.substring(0, 10);
                         const ht = _ht(page);
                         const mon = fn.substring(0, 7);
                         if (prevMD[mon] === undefined) continue;
-                        if (ht.has('pto')) prevMD[mon]++;
-                        if (ht.has('public')) prevMD[mon]++;
-                        if (ht.has('sick')) prevSickMD[mon]++;
+                        for (const type of ht) {
+                            const k = dateStr + '|' + type;
+                            if (seenPrev.has(k)) continue;
+                            seenPrev.add(k);
+                            if (type === 'pto' || type === 'public') prevMD[mon]++;
+                            if (type === 'sick') prevSickMD[mon]++;
+                        }
                     } catch (e) { continue; }
                 }
             } catch (e) {}

@@ -5,7 +5,7 @@ created: 2026-06-04
 tags:
   - meta/index
   - snippets
-modified_at: 2026-07-20
+modified_at: 2026-09-03
 ---
 
 # Helper/utils — Snippet & Script Index
@@ -142,6 +142,7 @@ modified_at: 2026-07-20
 | `monthlyEvents.md` | md-embed | 月度事件 | DV · `日记/{年}` + 嵌入 `eventNotes` | 10 |
 | `onThisDay.md` | md-embed | 历史上的今天 | DV · vault read | — |
 | `trackHolidays.md` | md-embed | 节假日追踪 | DV · `日记/` + `Helper/utils/holidays/` | 2 |
+| `trackPersonal.md` | md-embed | 个人活动与累计图表 | DV · `日记/{年}` + `Helper/config/PersonalConfig.md` | 1 |
 | `holidays/` | 数据目录 | 各月节假日数据 `YYYY-MM.md` | 无插件（被 `trackHolidays`/`plumbobCalendarGrid` 读取）| — |
 
 ## 9. QuickCapture / 任务 / 食材库
