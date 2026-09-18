@@ -1,34 +1,35 @@
 ---
 activities:
-  - emoji: "🎭"
-    label: "看戏"
-    tag: "看戏"
+  - emoji: 🎭
+    label: 看戏
+    tag: 看戏
   - emoji: ""
-    label: "🎾"
-    tag: "🎾"
-    fm: "activity_tennis"
-  - emoji: "🌸"
-    label: "出去玩"
-    tag: "出去玩"
-  - emoji: "🧸"
-    label: "Therapy"
-    tag: "therapy"
-  - emoji: "🎤"
+    label: 🎾
+    tag: 🎾
+    fm: activity_tennis
+  - emoji: 🌸
+    label: 出去玩
+    tag: 出去玩
+  - emoji: 🧸
+    label: Therapy
+    tag: therapy
+  - emoji: 🎤
     label: ""
-    tag: "🎤"
-    fm: "activity_singing"
-  - emoji: "📖"
-    label: "学习"
-    tag: "学习"
+    tag: 🎤
+    fm: activity_singing
+  - emoji: 📖
+    label: 学习
+    tag: 学习
     color: "#D946B8"
-  - emoji: "💪"
-    label: "健身"
-    tag: "健身房"
+  - emoji: 💪
+    label: 健身
+    tag: 健身房
 charts:
-  - tag: "学习"
-    labelSuffix: "📖"
+  - tag: 学习
+    labelSuffix: 📖
     color: "#D946B8"
-  - fm: "今日甚好"
-    labelSuffix: "今日甚好"
-    color: "crimson"
+  - fm: 今日甚好
+    labelSuffix: 今日甚好
+    color: crimson
+modified_at: 2026-09-09
 ---

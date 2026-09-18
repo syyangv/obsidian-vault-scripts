@@ -5,7 +5,7 @@ created: 2026-06-04
 tags:
   - meta/index
   - snippets
-modified_at: 2026-09-03
+modified_at: 2026-09-04
 ---
 
 # Helper/utils — Snippet & Script Index
