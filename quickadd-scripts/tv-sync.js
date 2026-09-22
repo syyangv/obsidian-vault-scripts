@@ -76,7 +76,9 @@ module.exports = async (params) => {
                 : isReadingFn(status);
         if (!isReading) return false;
         if (!p.开始日期) return false;
-        if (p.totalPage && toNumber(p.完成页数) >= toNumber(p.totalPage)) return false;
+        // Include finished books for the same reason as completed shows above:
+        // a corrected daily entry can require a rollback, and a book parked at
+        // 完成页数 >= totalPage is exactly where an over-log needs undoing.
         return true;
     }).array();
 
