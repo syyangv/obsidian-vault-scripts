@@ -10,11 +10,12 @@ module.exports = async (params) => {
             const cache = app.metadataCache.getFileCache(f);
             const fm = cache?.frontmatter;
             
-            // Handle both array and string status
+            // Handle both array and string status (support 在读 and 在看)
+            const isReading = (s) => s === '在读' || s === '在看';
             if (Array.isArray(fm?.status)) {
-                return fm.status.includes('在看');
+                return fm.status.some(isReading);
             }
-            return fm?.status === '在看';
+            return isReading(fm?.status);
         })
         .map(f => f.basename)
         .sort();

@@ -68,11 +68,12 @@ module.exports = async (params) => {
 
     const bookPages = dv.pages('"知识库/读书笔记"').where(p => {
         const status = p.status;
+        const isReadingFn = (s) => s === '在读' || s === '在看';
         const isReading = Array.isArray(status?.values)
-            ? status.values.includes('在看')
+            ? status.values.some(isReadingFn)
             : Array.isArray(status)
-                ? status.includes('在看')
-                : status === '在看';
+                ? status.some(isReadingFn)
+                : isReadingFn(status);
         if (!isReading) return false;
         if (!p.开始日期) return false;
         if (p.totalPage && toNumber(p.完成页数) >= toNumber(p.totalPage)) return false;
