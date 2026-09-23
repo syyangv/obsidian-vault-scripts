@@ -107,6 +107,13 @@ modified_at: <%* tR += tp.date.now("YYYY-MM-DD") %>
 **😷吃药：**`INPUT[inlineListSuggester(option(吃药/Sudafed-Pseudoephedrine),option(吃药/泰诺)):medication]`
 
 **🏖️假期：**`INPUT[inlineListSuggester(option(放假/PTO),option(放假/病假),option(放假/公共假期)):假期]`
+
+## ✅ 完成任务
+```tasks
+done on <% tp.file.title %>
+(description includes #Project/epaper) OR (description includes #Project/Structured) OR (description includes #Project/系统) OR (path includes 周计划)
+```
+
 ## 🏠 家务任务
 **🧹 地面清洁:** `INPUT[inlineListSuggester(option(吸尘), option(拖地)):hw_floor]`
 
