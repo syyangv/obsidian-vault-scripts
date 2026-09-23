@@ -111,7 +111,9 @@ modified_at: <%* tR += tp.date.now("YYYY-MM-DD") %>
 ## ✅ 完成任务
 ```tasks
 done on <% tp.file.title %>
-(description includes #Project/epaper) OR (description includes #Project/Structured) OR (description includes #Project/系统) OR (path includes 周计划)
+path does not include 播客
+path does not include Logistics/库存/Pantry
+path does not include Archive/pantry
 ```
 
 ## 🏠 家务任务
