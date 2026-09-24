@@ -10,8 +10,10 @@ rowNames:
   AmexPlatinum_transportation: Transportation
   AmexPlatinum_internet: Internet
   AmexPlatinum_phone: Phone
-  AmexPlatinum_flight_dollar_value: Flight Points Value
+  AmexPlatinum_flight_dollar_value: Amex MR Value
 nonPct:
+  - AmexPlatinum_flight_dollar_value
+unboundedAmount:
   - AmexPlatinum_flight_dollar_value
 biQuarter:
   - AmexPlatinum_hotel
@@ -21,5 +23,5 @@ variableAmount:
   - AmexPlatinum_uberOne
 hidden:
   - AmexPlatinum_Saks
-modified_at: 2026-08-11
+modified_at: 2026-09-24
 ---

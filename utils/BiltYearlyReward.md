@@ -1,5 +1,5 @@
 ---
-modified_at: 2026-09-03
+modified_at: 2026-09-24
 ---
 ```dataviewjs
 (async () => {
@@ -39,6 +39,7 @@ try {
     const prefix = cfg.prefix;
     const rn = cfg.rowNames || {};
     const cashPrefix = cfg.cashPrefix || "";
+    const cashKeys = cfg.cashKeys || [];
     const cashLabel = cfg.cashLabel || "Cash";
     const nonPct = cfg.nonPct || [];
     const mirror = cfg.mirror || [];
@@ -82,11 +83,12 @@ try {
     const yearTotals = collectTotals(expensePages);
     const creditTotals = collectTotals(dailyPages);
 
-    if (cashPrefix) {
+    if (cashPrefix || cashKeys.length) {
         for (const totals of [yearTotals, creditTotals]) {
             let sum = 0;
             for (const key of Object.keys(totals)) {
-                if (key.startsWith(cashPrefix)) { sum += totals[key]; delete totals[key]; }
+                if (cashPrefix && key.startsWith(cashPrefix)) { sum += totals[key]; delete totals[key]; }
+                else if (cashKeys.includes(key)) { sum += totals[key]; }
             }
             if (sum > 0) totals[cashLabel] = (totals[cashLabel] || 0) + sum;
         }

@@ -9,6 +9,8 @@ optionalMonthly:
   bilt_cash_lyft: 10
   bilt_cash_grubhub: 10
 cashPrefix: bilt_cash_
+cashKeys:
+  - bilt_equinox
 cashLabel: Bilt Cash
 nonPct:
   - bilt_flight_dollar_value
@@ -17,5 +19,5 @@ unboundedAmount:
 biQuarter:
   - bilt_equinox
 mirror: []
-modified_at: 2026-09-16
+modified_at: 2026-09-24
 ---
