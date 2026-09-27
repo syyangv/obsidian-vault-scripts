@@ -58,6 +58,9 @@ forward、未取消（`[x]` / `[>]` / `[-]`）的库存项的 💵 合计，与 
 
 | 日期 | 现有库存 | 库存项数 |
 | --- | --- | --- |
+{table}
+
+{bullets}
 """
 
 
@@ -154,7 +157,7 @@ def write_snapshot(stamp: datetime, count: int, total: float) -> str:
                     "count": int(cells[2].strip().removesuffix("项").strip())
                     if len(cells) > 2
                     else 0,
-                    "time": m.group(3),
+                    "time": m.group(2),
                 }
                 continue
             m = TABLE_ROW_RE.match(line)
@@ -172,16 +175,16 @@ def write_snapshot(stamp: datetime, count: int, total: float) -> str:
         "time": f"{stamp:%H:%M}",
     }
 
+    ordered = sorted(entries.items())
+    table = "\n".join(
+        f"| {d} | ${e['value']:.2f} | {e['count']} |" for d, e in ordered
+    )
     body = [
-        f"- {d} {e['time']} · ${e['value']:.2f} · {e['count']} 项"
-        for d, e in sorted(entries.items())
+        f"- {d} {e['time']} · ${e['value']:.2f} · {e['count']} 项" for d, e in ordered
     ]
-    table = [
-        f"| {d} | ${e['value']:.2f} | {e['count']} |" for d, e in sorted(entries.items())
-    ]
-    out = HEADER.format(modified=iso_date) + "\n".join(body + table) + "\n"
+    out = HEADER.format(modified=iso_date, table=table, bullets="\n".join(body))
     SNAPSHOT.write_text(out, encoding="utf-8")
-    return body[-1] if body[-1].startswith(f"- {iso_date} ") else body[0]
+    return next((line for line in body if line.startswith(f"- {iso_date} ")), body[-1])
 
 
 def main() -> int:
