@@ -2,7 +2,7 @@
 tags:
   - meta/index
 created: 2026-06-11
-modified_at: 2026-09-03
+modified_at: 2026-09-30
 ---
 
 # Obsidian 技能编排体系（3-Tier Orchestration Hierarchy）
@@ -76,6 +76,7 @@ graph TD
 | 请求类型 | 路由入口 / 编排器 | 协同调用的底层技能 |
 |---|---|---|
 | **全库总编排 / 跨模块重构** | `Obsidian Orchestrator` (Level 1) | 根据意图分流至 Level 2 或 Level 3 |
+| **全库插件与数据流联动 / 启动守护 / 防漂移巡检** | `Obsidian Orchestrator` (Level 1) | 参阅 `vault-linkage-matrix.md` · 运行 `verify_vault_integrations.py` |
 | **任务管理 / TaskNotes / Tasks 插件 / 复选框流转 / 看板日历视图** | `obsidian-task-skill-orchestrator` (Level 2) | `visual-design` + `plugin-dev` + `macros` |
 | **年度日历 / 请假计划 / PTO·公共假期 / plumbob 月格 / yearly-glance fork** | `yearly-glance-calendar` (Level 2) | `macros` + `visual-design` + `plugin-dev` |
 | **加按钮 / QuickAdd 宏 / Meta Bind / vault 脚本自动化** | `obsidian-macros` (Level 3) | 自身执行，样式委派 `visual-design` |
