@@ -101,17 +101,16 @@ module.exports = async (params) => {
             matchedProjectName = projName;
         }
     }
-
- let taskMode = "inline";
- let taskDescription = taskText;
+    let taskMode = "tasknote";
+    let taskDescription = taskText;
     if (matchedProjectName && !isSyncPool) {
-        // Offer choice between Project checkbox only or Project checkbox + TaskNote
+        // Offer choice between Project TaskNote (pure card) or plain inline checkbox
         const modeChoice = await quickAddApi.suggester(
             [
-                "⚡ Project checkbox (Project/" + matchedProjectName + ")",
-                "📦 Project checkbox + TaskNote (" + taskText.slice(0, 30) + "...)",
+                "📦 TaskNote 卡片 (推荐 · " + matchedProjectName + ")",
+                "⚡ 行内复选框 (Project/" + matchedProjectName + ")",
             ],
-            ["inline", "tasknote"]
+            ["tasknote", "inline"]
         );
         if (modeChoice === undefined) return;
         taskMode = modeChoice;
@@ -170,8 +169,8 @@ module.exports = async (params) => {
 
         const fileContent = frontmatterLines.join("\n");
         await app.vault.create(targetPath, fileContent);
- taskDescription = "[[TaskNotes/Tasks/" + targetPath.replace(/\.md$/, "") + "|" + taskText + "]]"
- new Notice("TaskNote created: " + fileName);
+        new Notice("TaskNote created: " + fileName);
+        return;
     }
 
     // --- Project-tagged inline tasks belong in Projects/<project>.md. ---
