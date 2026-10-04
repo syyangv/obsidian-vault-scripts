@@ -21,7 +21,9 @@ mirror: []
 variableAmount:
   - AmexPlatinum_subscription
   - AmexPlatinum_uberOne
+  - AmexPlatinum_shopping
+  - AmexPlatinum_resy
 hidden:
   - AmexPlatinum_Saks
-modified_at: 2026-09-24
+modified_at: 2026-10-03
 ---
