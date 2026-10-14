@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "scope": "pwa-daily-weekly-tasks-noon",
+  "maxConcurrentAgents": 4,
+  "candidates": [
+    {
+      "enabled": true,
+      "provider": "claude",
+      "model": "claude-sonnet-5-5",
+      "thinkingOptionId": "high",
+      "modeId": "auto",
+      "quotaPool": "claude"
+    },
+    {
+      "enabled": true,
+      "provider": "codex",
+      "model": "gpt-6-luna",
+      "thinkingOptionId": "high",
+      "modeId": "auto-review",
+      "quotaPool": "codex"
+    },
+    {
+      "enabled": true,
+      "provider": "agy",
+      "model": "Gemini 3.8 Flash",
+      "thinkingOptionId": "High",
+      "modeId": "accept-edits",
+      "quotaPool": "agy-gemini"
+    },
+    {
+      "enabled": true,
+      "provider": "agy",
+      "model": "Claude Sonnet 5.5",
+      "thinkingOptionId": "High",
+      "modeId": "accept-edits",
+      "quotaPool": "agy-3p"
+    },
+    {
+      "enabled": true,
+      "provider": "opencode",
+      "model": "opencode-go/deepseek-v4.1-flash",
+      "thinkingOptionId": "high",
+      "modeId": "build",
+      "quotaPool": "opencode-go"
+    }
+  ]
+}
