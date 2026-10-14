@@ -24,9 +24,14 @@ medication:
 起起体重:
 假期:
 location: <%*
-  const defaultLoc = "jc";
-  let loc = defaultLoc;
   const targetDate = tp.file.title;
+  let defaultLoc = "jc";
+  if (targetDate < "2015-08-20") {
+    defaultLoc = (targetDate >= "2015-06-18" && targetDate <= "2015-08-17") ? "wh" : "bj";
+  } else if (targetDate < "2021-06-21") {
+    defaultLoc = "pvd";
+  }
+  let loc = defaultLoc;
   const travelPlanFile = app.vault.getAbstractFileByPath("个人整理/旅行计划.md");
   if (travelPlanFile) {
     const text = await app.vault.read(travelPlanFile);

@@ -7,6 +7,9 @@ const location = await engine.prompt.suggester({
     options: [
         { label: "🌉 San Francisco (sf)", value: "sf" },
         { label: "🗼 Tokyo (tokyo)", value: "tokyo" },
+        { label: "🏛️ Providence (pvd)", value: "pvd" },
+        { label: "🏮 Beijing (bj)", value: "bj" },
+        { label: "🌊 Wuhan (wh)", value: "wh" },
         { label: "🏙️ Jersey City (jc - default)", value: "jc" },
     ],
 });
