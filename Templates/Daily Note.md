@@ -117,7 +117,7 @@ path does not include Archive/pantry
 ```
 
 ## 🏠 家务任务
-**🧹 地面清洁:** `INPUT[inlineListSuggester(option(吸尘), option(拖地)):hw_floor]`
+**🧹 地面清洁:** `INPUT[inlineListSuggester(option(吸尘), option(拖地), option(沙发底)):hw_floor]`
 
 **🛌 卧室:**`INPUT[inlineListSuggester(option(换床单), option(换被套)):hw_bedroom]`
 

@@ -1,5 +1,5 @@
 ---
-modified_at: 2026-09-03
+modified_at: 2026-10-11
 ---
 ```dataviewjs
 // =====================================================
@@ -42,6 +42,7 @@ const GROUPS = [
         tasks: [
             { key: '吸尘', fm: 'hw_floor', fmVals: ['吸尘'], label: '🌪️ 吸尘' },
             { key: '拖地', fm: 'hw_floor', fmVals: ['拖地'], label: '🧽 拖地' },
+            { key: '沙发底', fm: 'hw_floor', fmVals: ['沙发底'], label: '🛋️ 沙发底' },
         ]
     },
     {
@@ -105,7 +106,7 @@ const GROUPS = [
 
 // Recommended repeat interval (days) per task — drives next-due indicators
 const INTERVALS = {
-    '吸尘': 7,  '拖地': 21,
+    '吸尘': 7,  '拖地': 21, '沙发底': 90,
     '换床单': 30, '换被套': 30,
     '洗衣服': 7,
     '整理/叠衣服/上衣': 14, '整理/叠衣服/下装': 14, '整理/叠衣服/毛巾床品': 14,

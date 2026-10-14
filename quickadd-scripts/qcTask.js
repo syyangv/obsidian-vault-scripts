@@ -4,35 +4,25 @@ module.exports = async (params) => {
     const taskText = await quickAddApi.inputPrompt("Task description");
     if (!taskText) return;
 
-    const staticTags = [
-        { label: "No tag", value: "" },
-        { label: "📺 TV/Watch", value: "#📺" },
-        { label: "🎤 Karaoke", value: "#🎤" },
-        { label: "起起", value: "#起起" },
-    ];
-
-    const allTags = Object.keys(app.metadataCache.getTags());
-    const existingProjectTags = allTags
-        .filter(t => t.startsWith("#Project/"))
-        .map(t => ({ label: t.slice(1), value: t }));
-
-    const projectFiles = app.vault.getFiles()
+    // Only the three pools shown in 待办事项/待办事项.md may use inline capture.
+    const syncPools = ["#Project/epaper", "#Project/Structured", "#Project/系统"];
+    const inlineTags = syncPools.map(value => ({ label: `⚡ ${value.slice(1)}`, value }));
+    const projectTags = app.vault.getFiles()
         .filter(f => f.parent?.path === "Projects" && f.extension === "md" && !f.name.endsWith(".excalidraw.md") && f.name !== "Projects.md")
-        .map(f => ({ label: `Project/${f.basename}`, value: `#Project/${f.basename}`, basename: f.basename }));
-
-    const tagMap = new Map();
-    [...existingProjectTags, ...projectFiles].forEach(item => tagMap.set(item.value, item.label));
-    const projectTags = Array.from(tagMap.entries())
-        .sort((a, b) => a[0].localeCompare(b[0]))
-        .map(([value, label]) => ({ label, value }));
-
-    const tagOptions = [...staticTags, ...projectTags];
+        .map(f => ({ label: `📦 Project/${f.basename}`, value: `#Project/${f.basename}`, basename: f.basename }))
+        .filter(t => !syncPools.includes(t.value))
+        .sort((a, b) => a.value.localeCompare(b.value));
+    const tagOptions = [...inlineTags, ...projectTags];
 
     const selectedTag = await quickAddApi.suggester(
         tagOptions.map(t => t.label),
         tagOptions.map(t => t.value)
     );
-    if (selectedTag === undefined) return;
+    if (selectedTag === null || selectedTag === undefined) return;
+
+    const isSyncPool = syncPools.includes(selectedTag);
+    const matchedProjectName = projectTags.find(t => t.value === selectedTag)?.basename;
+    if (!isSyncPool && !matchedProjectName) return;
 
     // Helper to format date in local timezone (YYYY-MM-DD)
     const formatDate = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -67,7 +57,7 @@ module.exports = async (params) => {
         ],
         ["none", "today", "tomorrow", "nextmonday", "nextmonth", "pick"]
     );
-    if (scheduledDateChoice === undefined) return;
+    if (scheduledDateChoice === null || scheduledDateChoice === undefined) return;
 
     let scheduledDateStr = "";
 
@@ -81,6 +71,7 @@ module.exports = async (params) => {
         scheduledDateStr = nextMonthStr;
     } else if (scheduledDateChoice === "pick") {
         const dateInput = await quickAddApi.inputPrompt("Scheduled date (YYYY-MM-DD)");
+        if (dateInput === null || dateInput === undefined) return;
         if (dateInput && /^\d{4}-\d{2}-\d{2}$/.test(dateInput)) {
             scheduledDateStr = dateInput;
         } else if (dateInput) {
@@ -88,35 +79,7 @@ module.exports = async (params) => {
         }
     }
 
-    // Auto-structured-sync pools (epaper, Structured, 系统) must always remain inline
-    const syncPools = ["#Project/epaper", "#Project/Structured", "#Project/系统"];
-    const isSyncPool = syncPools.includes(selectedTag);
-
-    // Check if the selected tag matches an existing project note in Projects/
-    let matchedProjectName = "";
-    if (selectedTag.startsWith("#Project/")) {
-        const projName = selectedTag.replace("#Project/", "");
-        const projectFile = app.vault.getAbstractFileByPath(`Projects/${projName}.md`);
-        if (projectFile) {
-            matchedProjectName = projName;
-        }
-    }
-    let taskMode = "tasknote";
-    let taskDescription = taskText;
-    if (matchedProjectName && !isSyncPool) {
-        // Offer choice between Project TaskNote (pure card) or plain inline checkbox
-        const modeChoice = await quickAddApi.suggester(
-            [
-                "📦 TaskNote 卡片 (推荐 · " + matchedProjectName + ")",
-                "⚡ 行内复选框 (Project/" + matchedProjectName + ")",
-            ],
-            ["tasknote", "inline"]
-        );
-        if (modeChoice === undefined) return;
-        taskMode = modeChoice;
-    }
-
-    if (taskMode === "tasknote" && matchedProjectName) {
+    if (!isSyncPool) {
         // --- Create Standalone TaskNote in TaskNotes/Tasks/ ---
         const taskFolder = "TaskNotes/Tasks";
         if (!app.vault.getAbstractFileByPath(taskFolder)) {
@@ -173,19 +136,12 @@ module.exports = async (params) => {
         return;
     }
 
-    // --- Project-tagged inline tasks belong in Projects/<project>.md. ---
-    // No-project and protected sync-pool captures retain the Quick Capture
-    // fallback below.
-    const tagPart = selectedTag ? " " + selectedTag : "";
+    // Protected sync pools retain their existing Quick Capture destination and format.
+    const tagPart = " " + selectedTag;
     const scheduledPart = scheduledDateStr ? " ⏳ " + scheduledDateStr : "";
- const createdPart = matchedProjectName ? " ➕ " + todayStr : "";
- const taskLine = "- [ ] " + taskDescription + scheduledPart + " ✍️ " + todayStr + createdPart + tagPart;
+    const taskLine = "- [ ] " + taskText + scheduledPart + " ✍️ " + todayStr + tagPart;
 
-    const projectFile = matchedProjectName
-        ? app.vault.getAbstractFileByPath("Projects/" + matchedProjectName + ".md")
-        : null;
-    const file = projectFile
-        || app.vault.getAbstractFileByPath("待办事项/Quick Capture.md")
+    const file = app.vault.getAbstractFileByPath("待办事项/Quick Capture.md")
         || app.metadataCache.getFirstLinkpathDest("Quick Capture", "");
     if (!file) {
         new Notice("Quick Capture.md not found");
@@ -193,19 +149,6 @@ module.exports = async (params) => {
     }
 
     let content = await app.vault.read(file);
-
-    if (projectFile) {
-        const tasksHeading = "\n## Tasks";
-        const headingIndex = content.indexOf(tasksHeading);
-        if (headingIndex !== -1) {
-            content = content.slice(0, headingIndex + 1) + taskLine + "\n" + content.slice(headingIndex + 1);
-        } else {
-            content = content.trimEnd() + "\n\n" + taskLine + "\n";
-        }
-        await app.vault.modify(file, content);
-        new Notice("Task added to Projects/" + matchedProjectName);
-        return;
-    }
 
     // Try to insert after the quick_capture_controls embed.
     let replaced = content.replace(

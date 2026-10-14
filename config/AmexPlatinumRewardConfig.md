@@ -25,5 +25,5 @@ variableAmount:
   - AmexPlatinum_resy
 hidden:
   - AmexPlatinum_Saks
-modified_at: 2026-10-03
+modified_at: 2026-10-07
 ---
