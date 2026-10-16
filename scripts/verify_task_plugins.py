@@ -6,7 +6,7 @@ Verifies:
 1. TaskNotes custom userFields ('actualStart' date field) and modal configuration.
 2. TaskNotes sub-day suppression (time-estimate disabled, pomodoro in status bar disabled).
 3. TaskNotes excludedFolders boundary (Pantry, Archive, TV, Knowledge, Personal).
-4. tasknotes-clean.css snippet existence and activation in appearance.json.
+4. tasknotes-clean.css presence, activation, and Pomodoro hiding rules.
 5. Obsidian Tasks plugin customStatuses ([$], [>], [?], [!], [/], [-]).
 6. Tasks query blocks syntax integrity in 待办事项/任务视图.md.
 """
@@ -14,7 +14,9 @@ Verifies:
 from __future__ import annotations
 
 import json
+import argparse
 import re
+import subprocess
 import sys
 from pathlib import Path
 
@@ -97,11 +99,16 @@ def audit_tasknotes() -> list[tuple[str, bool, str]]:
     ))
 
     # 4. Pomodoro in status bar disabled
-    pomodoro_off = not data.get("showPomodoroInStatusBar", False)
+    pomodoro_off = data.get("showPomodoroInStatusBar") is False
     results.append((
         "TaskNotes pomodoro status bar disabled",
         pomodoro_off,
         "Disabled (pure day-level)" if pomodoro_off else "ENABLED (drift: pomodoro active in status bar)",
+    ))
+    results.append((
+        "TaskNotes tracked status bar disabled",
+        data.get("showTrackedTasksInStatusBar") is False,
+        "Expected explicit showTrackedTasksInStatusBar=false",
     ))
 
     # 5. excludedFolders boundary
@@ -135,6 +142,36 @@ def audit_tasknotes() -> list[tuple[str, bool, str]]:
         "tasknotes-clean.css snippet activated",
         snippet_enabled,
         "Enabled in appearance.json" if snippet_enabled else "DISABLED in appearance.json",
+    ))
+
+    # Static regression guard only; live DOM visibility still needs UI verification.
+    css = SNIPPET_FILE.read_text(encoding="utf-8") if snippet_exists else ""
+    css = re.sub(r"/\*.*?\*/", "", css, flags=re.DOTALL)
+    hidden_selectors = {
+        selector.strip()
+        for selectors, declarations in re.findall(r"([^{}]+)\{([^{}]*)\}", css)
+        if re.search(r"\bdisplay\s*:\s*none\s*!important\s*(?:;|$)", declarations)
+        for selector in selectors.split(",")
+    }
+    required_selectors = {
+        '.tasknotes-status-bar.tasknotes-pomodoro-status',
+        '.workspace-ribbon.mod-primary [aria-label*="pomodoro" i]',
+        '.workspace-ribbon.mod-primary [aria-label*="番茄"]',
+        '.date-time-picker-modal__time-field',
+        '.date-time-picker-modal__time-input',
+        '.tn-task-modal__time-estimate',
+        '[data-field-id="time-estimate"]',
+        '.tasknotes-plugin .task-card__metadata-property--totalTrackedTime',
+        '.tasknotes-plugin .task-card__metadata-property--timeEstimate',
+        '.tasknotes-plugin [data-event-type="timeEntry"]',
+    }
+    missing_selectors = sorted(required_selectors - hidden_selectors)
+    results.append((
+        "TaskNotes CSS hiding guards",
+        not missing_selectors,
+        "Status, ribbon, modal & card rules present (static only)"
+        if not missing_selectors
+        else f"MISSING hiding rules: {', '.join(missing_selectors)}",
     ))
 
     return results
@@ -200,7 +237,48 @@ def audit_tasks_plugin() -> list[tuple[str, bool, str]]:
     return results
 
 
+LIVE_SURFACES = ("ribbon", "status", "date-picker", "task-modal", "task-cards")
+
+
+def audit_live(surfaces: list[str]) -> list[dict]:
+    """Read mounted DOM via Obsidian CLI; missing surfaces are NOT a pass."""
+    probe = Path(__file__).with_name("verify_tasknotes_dom.js").read_text(encoding="utf-8")
+    code = probe.replace("__SURFACES__", json.dumps(surfaces))
+    try:
+        result = subprocess.run(
+            ["obsidian", "eval", f"vault={VAULT.name}", f"code={code}"],
+            capture_output=True, text=True, timeout=15,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return [{"surface": "connection", "state": "UNVERIFIED",
+                 "detail": "CLI unavailable/timed out; check vault and sandbox/local IPC permissions."}]
+    for line in result.stdout.splitlines():
+        try:
+            payload = json.loads(line.removeprefix("=> "))
+        except json.JSONDecodeError:
+            continue
+        if not isinstance(payload, dict) or payload.get("probe") != "tasknotes-css-v1":
+            continue
+        rows = payload.get("results")
+        if (result.returncode == 0 and isinstance(rows, list)
+                and len(rows) == len(surfaces)
+                and all(isinstance(r, dict) and r.get("surface") == s
+                        and r.get("state") in {"PASS", "FAIL", "UNVERIFIED"}
+                        for s, r in zip(surfaces, rows))):
+            return rows
+    return [{"surface": "connection", "state": "UNVERIFIED",
+             "detail": "No valid DOM report; check CLI output and sandbox process/IPC access before assuming Obsidian is closed."}]
+
+
 def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--static-only", action="store_true",
+                        help="Configuration/CSS rules only; does NOT verify UI compatibility")
+    parser.add_argument("--surface", action="append", choices=LIVE_SURFACES,
+                        help="Inspect a mounted surface; repeat for several (default: all)")
+    args = parser.parse_args()
+    if args.static_only and args.surface:
+        parser.error("--static-only cannot be combined with --surface")
     print("=" * 68)
     print("  Obsidian Tasks & TaskNotes Invariant & Configuration Audit")
     print("=" * 68)
@@ -220,9 +298,25 @@ def main() -> int:
             all_passed = False
         print(f"{status} {name:<40} : {detail}")
 
+    live_results = [] if args.static_only else audit_live(list(dict.fromkeys(args.surface or LIVE_SURFACES)))
+    print("\n--- UI compatibility ---")
+    if args.static_only:
+        print("[UNVERIFIED] Static-only mode: no DOM or visual compatibility verified.")
+    for row in live_results:
+        print(f"[{row['state']}] {row['surface']}: {row.get('detail', '')}")
     print("\n" + "=" * 68)
+    if any(r["state"] == "FAIL" for r in live_results):
+        all_passed = False
     if all_passed:
-        print("  All Tasks and TaskNotes configuration invariants are HEALTHY.")
+        if args.static_only:
+            print("  Static configuration checks passed; UI compatibility NOT verified.")
+            return 0
+        if any(r["state"] == "UNVERIFIED" for r in live_results):
+            print("  Static checks passed; UI verification INCOMPLETE (exit 2).")
+            return 2
+        print("  Static checks and requested DOM surfaces passed: "
+              + ", ".join(args.surface or LIVE_SURFACES)
+              + ". Other surfaces/visual layout are not implied.")
         print("=" * 68)
         return 0
     else:
