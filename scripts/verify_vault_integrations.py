@@ -181,7 +181,7 @@ class IntegrationAuditor:
         res = []
         travel_plan = self.vault / "个人整理/旅行计划.md"
         daily_tpl = self.vault / "Helper/Templates/Daily Note.md"
-        yg_dir = self.plugins_dir / "yearly-glance"
+        yg_dir = self.plugins_dir / "yearly-glance-custom"
 
         if travel_plan.exists():
             content = travel_plan.read_text(encoding="utf-8")
@@ -209,7 +209,7 @@ class IntegrationAuditor:
             res.append((
                 "yearly-glance custom fork installed",
                 True,
-                "Custom fork active in .obsidian/plugins/yearly-glance",
+                "Custom fork active in .obsidian/plugins/yearly-glance-custom",
             ))
         else:
             res.append(("yearly-glance plugin", False, "Plugin directory missing"))

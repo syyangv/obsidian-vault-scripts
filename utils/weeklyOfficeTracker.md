@@ -1,5 +1,5 @@
 ---
-modified_at: 2026-06-25
+modified_at: 2026-10-26
 ---
 ```dataviewjs
 const active = app.workspace.getActiveFile();
@@ -12,7 +12,7 @@ const WEEKDAYS = ["周一", "周二", "周三", "周四", "周五"];
 
 const holidayDates = new Map();
 try {
-  const raw = await app.vault.adapter.read(".obsidian/plugins/yearly-glance/data.json");
+  const raw = await app.vault.adapter.read(".obsidian/plugins/yearly-glance-custom/data.json");
   const yg = JSON.parse(raw);
   for (const h of (yg.data?.holidays ?? [])) {
     for (const d of (h.dateArr ?? [])) holidayDates.set(d, h.text);

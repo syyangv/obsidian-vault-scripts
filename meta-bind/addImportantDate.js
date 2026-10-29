@@ -30,6 +30,14 @@ const type = await engine.prompt.suggester({
 });
 if (!type) return;
 
+let year = "";
+if (type === "anniversary") {
+    year = await engine.prompt.text({
+        title: "Year (optional, e.g. 2020)",
+        placeholder: "2020",
+    }) || "";
+}
+
 const filePath = "个人整理/重要日期.md";
 const file = app.vault.getAbstractFileByPath(filePath);
 if (!file) {
@@ -55,7 +63,11 @@ if (headerIdx === -1) {
     return;
 }
 
-const newRow = `| ${trimmedDate} | ${label.trim()} | ${type} |`;
+const headerCells = lines[headerIdx].split('|').map(c => c.trim().toLowerCase());
+const hasYearCol = headerCells.includes('year');
+const newRow = hasYearCol
+    ? `| ${trimmedDate} | ${year.trim()} | ${label.trim()} | ${type} |`
+    : `| ${trimmedDate} | ${label.trim()} | ${type} |`;
 
 // Insert in sorted position by MM-DD
 let insertIdx = dataRows.length > 0 ? dataRows[dataRows.length - 1] + 1 : sepIdx + 1;

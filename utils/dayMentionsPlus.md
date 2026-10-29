@@ -1,5 +1,5 @@
 ---
-modified_at: 2026-07-20
+modified_at: 2026-10-23
 ---
 
 ```dataviewjs
@@ -229,17 +229,33 @@ modified_at: 2026-07-20
         const registryFile = app.vault.getAbstractFileByPath('个人整理/重要日期.md');
         if (!registryFile) return [];
         const content = await app.vault.read(registryFile);
-        return content
-            .split('\n')
-            .filter(line => {
-                const t = line.trim();
-                return t.startsWith('|') && !t.startsWith('|--') && !/^\|\s*date\s*\|/i.test(t);
-            })
-            .map(line => {
-                const cells = line.split('|').map(c => c.trim()).filter(c => c);
-                return { date: cells[0], label: cells[1], type: cells[2] };
-            })
-            .filter(e => e.date && e.label && e.type && e.date === targetMD);
+        const lines = content.split('\n');
+        let dateIdx = 0, labelIdx = 1, typeIdx = 2, yearIdx = -1;
+        let headerFound = false;
+        const events = [];
+        for (const rawLine of lines) {
+            const t = rawLine.trim();
+            if (!t.startsWith('|') || t.startsWith('|--')) continue;
+            const cells = t.split('|').map(c => c.trim()).slice(1, -1);
+            if (!cells.length) continue;
+            const lower = cells.map(c => c.toLowerCase());
+            if (!headerFound && lower.includes('date') && lower.includes('label')) {
+                dateIdx = lower.indexOf('date');
+                labelIdx = lower.indexOf('label');
+                typeIdx = lower.indexOf('type') !== -1 ? lower.indexOf('type') : 2;
+                yearIdx = lower.indexOf('year');
+                headerFound = true;
+                continue;
+            }
+            if (headerFound && cells[dateIdx] === targetMD) {
+                const labelVal = cells[labelIdx] || '';
+                const typeVal = cells[typeIdx] || '';
+                const yearVal = yearIdx !== -1 && cells[yearIdx] ? cells[yearIdx] : '';
+                const fullLabel = (yearVal && typeVal === 'anniversary') ? `${labelVal} (${yearVal})` : labelVal;
+                events.push({ date: cells[dateIdx], label: fullLabel, type: typeVal });
+            }
+        }
+        return events.filter(e => e.date && e.label && e.type);
     }
 
     // ── 5. Run both fetches concurrently ─────────────────────────────────────

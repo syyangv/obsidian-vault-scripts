@@ -1,5 +1,5 @@
 ---
-modified_at: 2026-06-05
+modified_at: 2026-10-26
 cssclasses:
   - no-embed-padding
 ---
@@ -75,7 +75,7 @@ try {
         }
         // 2) Fall back to yearly-glance data.json filtered to this month
         if (!Object.keys(HOLIDAYS).length) {
-            const _jpath = '.obsidian/plugins/yearly-glance/data.json';
+            const _jpath = '.obsidian/plugins/yearly-glance-custom/data.json';
             const _jtf = app.vault.getAbstractFileByPath(_jpath);
             if (_jtf) {
                 const _jraw = await app.vault.read(_jtf);

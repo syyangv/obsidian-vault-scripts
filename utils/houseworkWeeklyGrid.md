@@ -1,5 +1,5 @@
 ---
-modified_at: 2026-10-11
+modified_at: 2026-10-26
 ---
 ```dataviewjs
 // =====================================================
@@ -201,7 +201,7 @@ const OFFICE_KEY = '办公室3天';
 const OFFICE_GOAL = 3;
 let ygHolidays = new Set();
 try {
-    const raw = await app.vault.adapter.read(".obsidian/plugins/yearly-glance/data.json");
+    const raw = await app.vault.adapter.read(".obsidian/plugins/yearly-glance-custom/data.json");
     const yg = JSON.parse(raw);
     for (const h of (yg.data?.holidays ?? [])) {
         for (const d of (h.dateArr ?? [])) ygHolidays.add(d);

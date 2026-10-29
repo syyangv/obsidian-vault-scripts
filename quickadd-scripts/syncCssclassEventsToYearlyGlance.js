@@ -1,4 +1,4 @@
-const YEARLY_GLANCE_DATA_VAULT_PATH = ".obsidian/plugins/yearly-glance/data.json";
+const YEARLY_GLANCE_DATA_VAULT_PATH = ".obsidian/plugins/yearly-glance-custom/data.json";
 const EVENT_CSSCLASS = "yearly-glance-event";
 const SYNC_SOURCE = "cssclass-events-sync";
 const DEFAULT_EMOJI = "📌";

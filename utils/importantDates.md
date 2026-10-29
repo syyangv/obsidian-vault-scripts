@@ -1,5 +1,5 @@
 ---
-modified_at: 2026-09-03
+modified_at: 2026-10-23
 ---
 ```dataviewjs
 (async () => {
@@ -15,27 +15,43 @@ modified_at: 2026-09-03
     const targetDate = `${month}-${day}`;
 
     // ── 2. Load registry (markdown table in body) ────────────────────────
-    // Registry note: 个人整理/重要日期.md — table with columns: Date | Label | Type
+    // Registry note: 个人整理/重要日期.md — table with columns: Date | Label | Type (and optional Year)
     const registryFile = app.vault.getAbstractFileByPath("个人整理/重要日期.md");
     if (!registryFile) return;
 
     const content = await app.vault.read(registryFile);
 
     // ── 3. Parse table rows ──────────────────────────────────────────────
-    const allEvents = content
-        .split('\n')
-        .filter(line => {
-            const trimmed = line.trim();
-            // Keep only data rows: start with |, not the header or separator
-            return trimmed.startsWith('|')
-                && !trimmed.startsWith('|--')
-                && !/^\|\s*date\s*\|/i.test(trimmed);
-        })
-        .map(line => {
-            const cells = line.split('|').map(c => c.trim()).filter(c => c);
-            return { date: cells[0], label: cells[1], type: cells[2] };
-        })
-        .filter(e => e.date && e.label && e.type);
+    const lines = content.split('\n');
+    let dateIdx = 0, labelIdx = 1, typeIdx = 2, yearIdx = -1;
+    let headerFound = false;
+    const allEvents = [];
+
+    for (const rawLine of lines) {
+        const trimmed = rawLine.trim();
+        if (!trimmed.startsWith('|') || trimmed.startsWith('|--')) continue;
+        const cells = trimmed.split('|').map(c => c.trim()).slice(1, -1);
+        if (!cells.length) continue;
+        const lower = cells.map(c => c.toLowerCase());
+        if (!headerFound && lower.includes('date') && lower.includes('label')) {
+            dateIdx = lower.indexOf('date');
+            labelIdx = lower.indexOf('label');
+            typeIdx = lower.indexOf('type') !== -1 ? lower.indexOf('type') : 2;
+            yearIdx = lower.indexOf('year');
+            headerFound = true;
+            continue;
+        }
+        if (headerFound && cells[dateIdx]) {
+            const dateVal = cells[dateIdx];
+            const labelVal = cells[labelIdx] || '';
+            const typeVal = cells[typeIdx] || '';
+            const yearVal = yearIdx !== -1 && cells[yearIdx] ? cells[yearIdx] : '';
+            const fullLabel = (yearVal && typeVal === 'anniversary') ? `${labelVal} (${yearVal})` : labelVal;
+            if (dateVal && fullLabel && typeVal) {
+                allEvents.push({ date: dateVal, label: fullLabel, type: typeVal, year: yearVal });
+            }
+        }
+    }
 
     // ── 4. Filter matching events ───────────────────────────────────────
     const todayEvents = allEvents.filter(e => e.date === targetDate);
