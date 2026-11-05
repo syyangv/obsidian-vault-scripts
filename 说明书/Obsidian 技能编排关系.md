@@ -9,7 +9,7 @@ modified_at: 2026-10-07
 
 > 本图描述的是 **Claude Code 里 `~/.claude/skills/obsidian-*` 与 hooks 编排器之间**的完整 3 层分流与调用关系。脚本物理存放位置见 [[Helper 脚本地图]] §0。
 
-### 1. 全库总分流体系 (Level 1 ➔ Level 2 / Level 3)
+## 1. 全库总分流体系 (Level 1 ➔ Level 2 / Level 3)
 
 ```mermaid
 graph TD
@@ -27,7 +27,7 @@ graph TD
     TOP -.->|插件开发/配置| PD
 ```
 
-### 2. 任务与待办域编排 (Level 2 · Task Domain)
+## 2. 任务与待办域编排 (Level 2 · Task Domain)
 
 ```mermaid
 graph TD
@@ -41,7 +41,7 @@ graph TD
     TO -->|脚本自动化| M
 ```
 
-### 3. 日历与假期域编排 (Level 2 · Calendar Domain)
+## 3. 日历与假期域编排 (Level 2 · Calendar Domain)
 
 ```mermaid
 graph TD
