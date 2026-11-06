@@ -1,5 +1,5 @@
 ---
-modified_at: 2026-07-20
+modified_at: 2026-11-05
 ---
 ```dataviewjs
 const file = app.workspace.getActiveFile();
@@ -59,8 +59,15 @@ archiveBtn.addEventListener('click', async () => {
         const sectionHeader = `# ${file.basename}`;
 
         for (const [year, archivedLines] of Object.entries(toArchive)) {
-            const archivePath = `Archive/pantry${year}.md`;
-            const archiveFile = app.vault.getAbstractFileByPath(archivePath);
+            const yearFolder = `Archive/${year}`;
+            if (!app.vault.getAbstractFileByPath('Archive')) {
+                await app.vault.createFolder('Archive');
+            }
+            if (!app.vault.getAbstractFileByPath(yearFolder)) {
+                await app.vault.createFolder(yearFolder);
+            }
+            const archivePath = `${yearFolder}/pantry${year}.md`;
+            const archiveFile = app.vault.getAbstractFileByPath(archivePath) || app.vault.getAbstractFileByPath(`Archive/pantry${year}.md`);
             const tasksText = archivedLines.join('\n');
 
             if (archiveFile) {

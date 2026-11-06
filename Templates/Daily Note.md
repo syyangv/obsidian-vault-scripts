@@ -118,7 +118,7 @@ modified_at: <%* tR += tp.date.now("YYYY-MM-DD") %>
 done on <% tp.file.title %>
 path does not include 播客
 path does not include Logistics/库存/Pantry
-path does not include Archive/pantry
+path regex does not match /Archive\/.*pantry/i
 ```
 
 ## 🏠 家务任务

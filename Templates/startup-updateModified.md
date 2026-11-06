@@ -1,7 +1,18 @@
 ---
-modified_at: 2026-10-07
+modified_at: 2026-10-28
 ---
 <%*
+// Notes the PWA writes itself. Stamping one of these makes the revision the app
+// just recorded stale within seconds, so its next queued write 409s as
+// "Changed in Obsidian" for a line that never moved (2026-10-18: the app's
+// pantry:toggle reported sha256:0e53a32a, this stamp rewrote the same content
+// to sha256:72ad8eab two seconds later). Add a path here when another
+// machine-owned note starts churning rather than loosening the guard below.
+const PWA_OWNED_PATHS = [
+    'Logistics/库存/Pantry.md',
+    '待办事项/Quick Capture.md',
+];
+
 // Guard: only register once per Obsidian session
 if (!app._modifiedAtListenerActive) {
     const processing = new Set();
@@ -9,6 +20,9 @@ if (!app._modifiedAtListenerActive) {
     const handler = async (file) => {
         // Only .md files
         if (!file.path.endsWith('.md')) return;
+        // Leave a machine-owned note alone: the PWA is its writer, and a stamp
+        // here invalidates the revision it just wrote.
+        if (PWA_OWNED_PATHS.indexOf(file.path.normalize('NFC')) >= 0) return;
         // Skip if we're already writing this file (prevents write loop)
         if (processing.has(file.path)) return;
 

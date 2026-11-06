@@ -6,7 +6,7 @@ tags:
 结束日期（周六）: <% window.moment(tp.file.title, "GGGG-[W]WW").day(6).format("YYYY-MM-DD") %>
 cssclasses:
   - hide-frontmatter
-modified_at: 2026-06-25
+modified_at: 2026-11-05
 ---
 
 ![[weeklyNavigation]]
@@ -81,7 +81,7 @@ done before <% window.moment(tp.file.title, "GGGG-[W]WW").day(6).add(1, 'day').f
 path does not include 播客
 path does not include 周计划
 path does not include Logistics/库存/Pantry
-path does not include Archive/pantry
+path regex does not match /Archive\/.*pantry/i
 ```
 
 ===
@@ -89,7 +89,7 @@ path does not include Archive/pantry
 ```tasks
 done after <% window.moment(tp.file.title, "GGGG-[W]WW").day(0).subtract(1, 'day').format("YYYY-MM-DD") %>
 done before <% window.moment(tp.file.title, "GGGG-[W]WW").day(6).add(1, 'day').format("YYYY-MM-DD") %>
-filter by function task.file.path.includes('Logistics/库存/Pantry') || /^archive\/pantry/i.test(task.file.path)
+filter by function task.file.path.includes('Logistics/库存/Pantry') || /^archive\/.*pantry/i.test(task.file.path)
 hide backlink
 ```
 ```dataviewjs
@@ -98,7 +98,7 @@ const p = dv.current();
 const start = dv.luxon.DateTime.fromISO(String(p["开始日期（周日）"]).slice(0,10)).startOf('day');
 const end = dv.luxon.DateTime.fromISO(String(p["结束日期（周六）"]).slice(0,10)).endOf('day');
 const tasks = dv.pages('"Logistics/库存/Pantry" or "Archive"').file.tasks
-  .where(t => t.path.includes('Logistics/库存/Pantry') || /archive\/pantry/i.test(t.path));
+  .where(t => t.path.includes('Logistics/库存/Pantry') || /archive\/.*pantry/i.test(t.path));
 let n = 0, total = 0;
 for (const t of tasks) {
   if (t.status !== 'x' && t.status !== 'X') continue;     // done
