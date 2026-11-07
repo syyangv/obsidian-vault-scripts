@@ -1,5 +1,5 @@
 ---
-modified_at: 2026-09-03
+modified_at: 2026-11-06
 ---
 ```dataviewjs
 (async () => {
@@ -79,6 +79,23 @@ try {
 
     const yearTotals = collectTotals(expensePages);
     const creditTotals = collectTotals(dailyPages);
+
+    // Config-owned monthly allowances accrue through the current month, not
+    // future months. Historical years include December; usage stays intact.
+    const now = new Date();
+    const lastMonth = selectedYear < now.getFullYear() ? 12
+        : selectedYear === now.getFullYear() ? now.getMonth() + 1 : 0;
+    for (const [key, spec] of Object.entries(cfg.recurringMonthly || {})) {
+        const match = /^(\d{4})-(0[1-9]|1[0-2])$/.exec(spec?.startMonth || '');
+        const amount = parseVal(spec?.amount);
+        if (!key.startsWith(prefix) || !match || !Number.isFinite(amount) || amount <= 0) continue;
+        const startYear = Number(match[1]);
+        const firstMonth = selectedYear > startYear ? 1
+            : selectedYear === startYear ? Number(match[2]) : 13;
+        const months = Math.max(0, lastMonth - firstMonth + 1);
+        // This config owns the allowance; do not add a duplicate note entry.
+        if (months > 0) yearTotals[key] = Math.round(amount * months * 100) / 100;
+    }
 
     const allKeys = [...new Set([...Object.keys(yearTotals), ...Object.keys(creditTotals)])].sort();
     if (allKeys.length === 0) {
