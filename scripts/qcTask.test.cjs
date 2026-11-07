@@ -9,7 +9,7 @@ const helper = path.resolve(__dirname, '..');
 const source = fs.readFileSync(path.join(helper, 'quickadd-scripts/qcTask.js'), 'utf8');
 const dashboard = fs.readFileSync(path.join(helper, '../待办事项/待办事项.md'), 'utf8');
 const pools = ['#Project/epaper', '#Project/Structured', '#Project/系统'];
-const projects = ['生活事务', '购物errand', '手工', '做饭', 'Obsidian UX', 'LLM'];
+const projects = ['生活事务', '购物errand', '手工', '做饭', 'Obsidian UX', 'LLM', '卖东西'];
 const capturePath = '待办事项/Quick Capture.md';
 const originalCapture = '---\ntags: []\n---\n`BUTTON[add_task]`\n![[quick_capture_controls]]\n- [ ] Existing [id:: pool_existing] #Project/系统\n';
 
@@ -63,12 +63,12 @@ async function run(options = {}) {
     return { writes, pickers, files, notices };
 }
 
-test('picker contains exactly three protected pools and the six live projects, not historical tags', async () => {
+test('picker contains exactly three protected pools and the seven live projects, not historical tags', async () => {
     const { pickers } = await run({ selectedTag: undefined, inputs: [null] });
     assert.equal(pickers.length, 0);
     const result = await run();
     assert.deepEqual([...result.pickers[0].values].sort(), [...pools, ...projects.map(p => `#Project/${p}`)].sort());
-    assert.equal(result.pickers[0].values.length, 9);
+    assert.equal(result.pickers[0].values.length, 10);
 });
 
 for (const tag of pools) test(`inline ${tag} stays in Quick Capture and matches its dashboard query`, async () => {
@@ -155,4 +155,11 @@ test('live vault project inventory and dashboard pool tags match the routing con
     assert.deepEqual(projectNames.sort(), [...projects].sort());
     const dashboardTags = [...dashboard.matchAll(/^description includes (#Project\/\S+)$/gm)].map(match => match[1]);
     assert.deepEqual(dashboardTags.sort(), [...pools].sort());
+});
+
+test('project notes do not duplicate automatic TaskNotes Relationships panels', () => {
+    for (const project of projects) {
+        const note = fs.readFileSync(path.join(helper, '../Projects', `${project}.md`), 'utf8');
+        assert.doesNotMatch(note, /!\[\[TaskNotes\/Views\/relationships\.base(?:[\]|#])/, `${project}: rely on the automatic Relationships panel`);
+    }
 });
