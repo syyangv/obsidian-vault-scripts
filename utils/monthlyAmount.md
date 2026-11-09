@@ -1,5 +1,5 @@
 ---
-modified_at: 2026-07-20
+modified_at: 2026-11-06
 ---
 ```dataviewjs
 // 购物金额 & 食物金额 & 电费 Year-over-Year Comparison with Tabs
@@ -174,6 +174,40 @@ function applyCarryBack(fw, shopping) {
 const adj_fw_lastYear = applyCarryBack(fw_lastYear, shopping_lastYear);
 const adj_fw_currentYear = applyCarryBack(fw_currentYear, shopping_currentYear);
 
+function cumulativeMonthlyAverage(values) {
+    let total = 0;
+    let count = 0;
+    return values.map(value => {
+        if (value === null || value === undefined) return null;
+        total += Number(value);
+        count += 1;
+        return total / count;
+    });
+}
+
+function addAverageLines(chart, previousValues, currentValues) {
+    chart.data.datasets.forEach(dataset => { dataset.order = 1; });
+    for (const [year, values, color] of [
+        [lastYear, previousValues, 'rgba(255, 154, 162, 1)'],
+        [currentYear, currentValues, 'rgba(183, 225, 205, 1)']
+    ]) {
+        chart.data.datasets.push({
+            type: 'line',
+            label: `${year}年 累计月均`,
+            data: cumulativeMonthlyAverage(values),
+            borderColor: color,
+            backgroundColor: color,
+            borderWidth: 2,
+            pointRadius: 2,
+            fill: false,
+            tension: 0,
+            spanGaps: true,
+            stack: `${year}-average`,
+            order: 0
+        });
+    }
+}
+
 // Shopping chart data (stacked: other shopping + forwarding)
 const shoppingChartData = {
     type: 'bar',
@@ -223,17 +257,18 @@ const shoppingChartData = {
                 position: 'top',
                 labels: {
                     generateLabels: (chart) => [
-                        { text: `${lastYear}年`,    fillStyle: 'rgba(255,154,162,0.8)', strokeStyle: 'rgba(255,154,162,1)', lineWidth: 1, hidden: !chart.isDatasetVisible(0) && !chart.isDatasetVisible(1), datasetIndex: 0 },
-                        { text: `${currentYear}年`, fillStyle: 'rgba(183,225,205,0.8)', strokeStyle: 'rgba(183,225,205,1)', lineWidth: 1, hidden: !chart.isDatasetVisible(2) && !chart.isDatasetVisible(3), datasetIndex: 2 },
+                        { text: `${lastYear}年`,    fillStyle: 'rgba(255,154,162,0.8)', strokeStyle: 'rgba(255,154,162,1)', lineWidth: 1, hidden: !chart.isDatasetVisible(0) && !chart.isDatasetVisible(1) && !chart.isDatasetVisible(4), datasetIndex: 0 },
+                        { text: `${currentYear}年`, fillStyle: 'rgba(183,225,205,0.8)', strokeStyle: 'rgba(183,225,205,1)', lineWidth: 1, hidden: !chart.isDatasetVisible(2) && !chart.isDatasetVisible(3) && !chart.isDatasetVisible(5), datasetIndex: 2 },
                     ]
                 },
                 onClick: (e, item, legend) => {
                     const chart = legend.chart;
                     const isLast = item.text === `${lastYear}年`;
-                    const [a, b] = isLast ? [0, 1] : [2, 3];
+                    const [a, b, average] = isLast ? [0, 1, 4] : [2, 3, 5];
                     const vis = chart.isDatasetVisible(a);
                     chart.setDatasetVisibility(a, !vis);
                     chart.setDatasetVisibility(b, !vis);
+                    chart.setDatasetVisibility(average, !vis);
                     chart.update();
                 }
             },
@@ -321,6 +356,10 @@ const electricityChartData = {
 };
 
 // Render charts
+addAverageLines(shoppingChartData, shopping_lastYear, shopping_currentYear);
+addAverageLines(foodChartData, food_lastYear, food_currentYear);
+addAverageLines(electricityChartData, electricity_lastYear, electricity_currentYear);
+
 window.renderChart(shoppingChartData, shoppingChartDiv);
 window.renderChart(foodChartData, foodChartDiv);
 window.renderChart(electricityChartData, electricityChartDiv);
