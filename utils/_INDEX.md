@@ -5,7 +5,7 @@ created: 2026-06-04
 tags:
   - meta/index
   - snippets
-modified_at: 2026-09-04
+modified_at: 2026-11-10
 ---
 
 # Helper/utils — Snippet & Script Index
@@ -81,7 +81,7 @@ modified_at: 2026-09-04
 | `plumbobCalendarGrid.md` | md-embed | Plumbob 主题月历 | DV · `日记/` + `Helper/utils/holidays/` + Weather API | 2 |
 
 > **plumbobCalendarGrid 天气图标架构** (2026-06-05):
-> - 数据源: `pwa-wardrobe.fly.dev/api/weather/forecast` (Tomorrow.io 代理), localStorage 缓存 8h (`plumbob_weather_v7`)
+> - 数据源: pwa-wardrobe (Linuxbox, 仅 tailnet) `/api/weather/history?month=` (Tomorrow.io 代理), localStorage 缓存 4h (`plumbob_weather_v8_<month>`)
 > - 图标: 12 个 Sims 4 风格 22×22 PNG (base64), 存于 `WX_IMG` 对象, 通过 `WEATHER_CODES` 映射 Tomorrow.io code → base64
 > - 渲染: `<div class="pc-weather">` + `background-image:url('data:image/png;base64,...')`, 带 `rgba(80,120,160,0.45)` 底色确保 light mode 可见
 > - 图标列表: sunny, mostly_clear, partly_cloudy, mostly_cloudy, cloudy, fog, light_rain, rain, snow, heavy_snow, freezing, thunderstorm

@@ -1,5 +1,5 @@
 ---
-modified_at: 2026-10-26
+modified_at: 2026-11-10
 cssclasses:
   - no-embed-padding
 ---
@@ -133,8 +133,10 @@ try {
         if (wCached) {
             weatherByDate = wCached;
         } else {
+            // 地址在不入 git 的 Helper/config/local.json (公开仓库不写 tailnet 主机名)
+            const wBase = JSON.parse(await app.vault.adapter.read('Helper/config/local.json')).pwaWardrobeBaseUrl;
             const wResp = await requestUrl({
-                url: 'http://localhost:8000/api/weather/history?month=' + MONTH_YEAR,
+                url: wBase + '/api/weather/history?month=' + MONTH_YEAR,
             });
             if (wResp.status === 200) {
                 const byDate = wResp.json.byDate || {};
@@ -148,7 +150,7 @@ try {
                 try { localStorage.setItem(wCacheKey, JSON.stringify({ ts: Date.now(), data: weatherByDate })); } catch {}
             }
         }
-    } catch {}
+    } catch (e) { console.warn('[plumbobCalendarGrid] weather unavailable:', e); }
 
     // ── Activity definitions ────────────────────────────────────────────────
     // Only activities that actually appear in 2026-04 daily notes.
