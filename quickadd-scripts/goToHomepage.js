@@ -1,16 +1,22 @@
-// Notes that stay open and pinned on startup; every other main-area tab is closed.
+// Notes and views that stay open and pinned on startup; every other main-area tab is closed.
 const PINNED_NOTES = [
     "待办事项/待办事项.md",
     "TaskNotes/Views/kanban-default.base",
     "个人主页.md",
 ];
+// Views that are not files, matched by view type
+const PINNED_VIEWS = ["ai-dashboard-v15"];
 const FOCUS_NOTE = "个人主页.md";
 
 module.exports = async (params) => {
     const { app } = params;
 
-    // The saved view state carries the path even for tabs that are not loaded yet
-    const pathOf = (leaf) => leaf.getViewState().state?.file;
+    // A tab's identity is its view type for listed views, else its file path.
+    // The saved view state carries both even for tabs that are not loaded yet.
+    const keyOf = (leaf) => {
+        const state = leaf.getViewState();
+        return PINNED_VIEWS.includes(state.type) ? state.type : state.state?.file;
+    };
     const rootLeaves = () => {
         const leaves = [];
         // Block body: a truthy callback return value would stop the iteration
@@ -24,31 +30,35 @@ module.exports = async (params) => {
     if (missing.length) {
         new Notice(`找不到固定笔记: ${missing.join(", ")}`);
     }
-    const notes = PINNED_NOTES.filter((p) => !missing.includes(p));
+    const wanted = [...PINNED_NOTES.filter((p) => !missing.includes(p)), ...PINNED_VIEWS];
 
-    // Keep the first tab per listed note
+    // Keep the first tab per wanted entry
     const kept = new Map();
     for (const leaf of rootLeaves()) {
-        const path = pathOf(leaf);
-        if (notes.includes(path) && !kept.has(path)) kept.set(path, leaf);
+        const key = keyOf(leaf);
+        if (wanted.includes(key) && !kept.has(key)) kept.set(key, leaf);
     }
 
-    // Open missing notes before closing anything so the main area is never left empty.
-    // A new tab is kept only if it ends up showing its note; otherwise the sweep
+    // Open missing entries before closing anything so the main area is never left empty.
+    // A new tab is kept only if it ends up showing its entry; otherwise the sweep
     // below closes it, so an empty tab is never pinned.
     const created = [];
-    for (const path of notes) {
-        if (kept.has(path)) continue;
+    for (const key of wanted) {
+        if (kept.has(key)) continue;
         const leaf = app.workspace.getLeaf("tab");
         created.push(leaf);
         try {
-            await leaf.openFile(app.vault.getAbstractFileByPath(path));
+            if (PINNED_VIEWS.includes(key)) {
+                await leaf.setViewState({ type: key });
+            } else {
+                await leaf.openFile(app.vault.getAbstractFileByPath(key));
+            }
         } catch (error) {
-            new Notice(`打开失败: ${path}`);
+            new Notice(`打开失败: ${key}`);
         }
-        if (pathOf(leaf) === path) kept.set(path, leaf);
+        if (keyOf(leaf) === key) kept.set(key, leaf);
     }
-    // Never close everything when no listed note could be shown
+    // Never close everything when nothing wanted could be shown
     if (kept.size === 0) {
         const attached = rootLeaves();
         created.filter((leaf) => attached.includes(leaf)).forEach((leaf) => leaf.detach());
@@ -66,9 +76,9 @@ module.exports = async (params) => {
         leaf.setPinned(true);
     }
     app.workspace.setActiveLeaf(
-        pinned.find((leaf) => pathOf(leaf) === FOCUS_NOTE) ?? pinned[0],
+        pinned.find((leaf) => keyOf(leaf) === FOCUS_NOTE) ?? pinned[0],
         { focus: true }
     );
 
-    new Notice(`已固定 ${pinned.length} 个笔记，关闭 ${attached.length - pinned.length} 个标签页`);
+    new Notice(`已固定 ${pinned.length} 个标签页，关闭 ${attached.length - pinned.length} 个标签页`);
 };
