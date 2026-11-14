@@ -75,6 +75,32 @@ module.exports = async (params) => {
     for (const leaf of pinned) {
         leaf.setPinned(true);
     }
+
+    // Bases views opened during startup (e.g. kanban-default.base) may render before
+    // delayed plugins like TaskNotes register custom view types (tasknotesKanban),
+    // leaving a sticky "Unknown view type" error because BasesView has no .refresh().
+    // Poll briefly until the custom view factory is registered, then clear & re-render.
+    const recoverBasesLeaves = (attempt = 0) => {
+        let pending = false;
+        for (const leaf of pinned) {
+            if (leaf.view?.getViewType?.() !== "bases") continue;
+            const ctrl = leaf.view.controller;
+            if (!ctrl || ctrl.error !== "view") continue;
+            const cfg = ctrl.query?.getViewConfig?.(ctrl.viewName);
+            if (cfg?.type && ctrl.plugin?.getViewFactory?.(cfg.type)) {
+                ctrl.clearError();
+                ctrl.queryState = "";
+                ctrl.update();
+            } else {
+                pending = true;
+            }
+        }
+        if (pending && attempt < 20) {
+            setTimeout(() => recoverBasesLeaves(attempt + 1), 500);
+        }
+    };
+    recoverBasesLeaves();
+
     app.workspace.setActiveLeaf(
         pinned.find((leaf) => keyOf(leaf) === FOCUS_NOTE) ?? pinned[0],
         { focus: true }
