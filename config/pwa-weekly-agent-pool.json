@@ -2,6 +2,7 @@
   "schemaVersion": 1,
   "scope": "pwa-daily-weekly-tasks-noon",
   "maxConcurrentAgents": 4,
+  "minRemainingPercent": 20,
   "candidates": [
     {
       "enabled": true,
@@ -9,7 +10,8 @@
       "model": "claude-sonnet-5-5",
       "thinkingOptionId": "high",
       "modeId": "auto",
-      "quotaPool": "claude"
+      "quotaPool": "claude",
+      "tier": 1
     },
     {
       "enabled": true,
@@ -17,7 +19,8 @@
       "model": "gpt-6-luna",
       "thinkingOptionId": "high",
       "modeId": "auto-review",
-      "quotaPool": "codex"
+      "quotaPool": "codex",
+      "tier": 1
     },
     {
       "enabled": true,
@@ -25,15 +28,8 @@
       "model": "Gemini 3.8 Flash",
       "thinkingOptionId": "High",
       "modeId": "accept-edits",
-      "quotaPool": "agy-gemini"
-    },
-    {
-      "enabled": true,
-      "provider": "agy",
-      "model": "Claude Sonnet 5.5",
-      "thinkingOptionId": "High",
-      "modeId": "accept-edits",
-      "quotaPool": "agy-3p"
+      "quotaPool": "agy-gemini",
+      "tier": 2
     },
     {
       "enabled": true,
@@ -41,7 +37,17 @@
       "model": "opencode-go/deepseek-v4.1-flash",
       "thinkingOptionId": "high",
       "modeId": "build",
-      "quotaPool": "opencode-go"
+      "quotaPool": "opencode-go",
+      "tier": 2
+    },
+    {
+      "enabled": true,
+      "provider": "agy",
+      "model": "Claude Sonnet 5.5",
+      "thinkingOptionId": "High",
+      "modeId": "accept-edits",
+      "quotaPool": "agy-3p",
+      "tier": 2
     }
   ]
 }
