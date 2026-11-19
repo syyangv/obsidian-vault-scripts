@@ -5,7 +5,7 @@
   "minRemainingPercent": 20,
   "candidates": [
     {
-      "enabled": true,
+      "enabled": false,
       "provider": "claude",
       "model": "claude-sonnet-5-5",
       "thinkingOptionId": "high",
