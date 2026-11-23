@@ -130,7 +130,7 @@ path regex does not match /Archive\/.*pantry/i
 
 **🚿 浴室清洁：**`INPUT[inlineListSuggester(option(刷马桶), option(洗手台), option(浴室地面), option(替换/牙刷刷头)):hw_bathroom]`
 
-**🔪 厨房清洁：**`INPUT[inlineListSuggester(option(厨房水池), option(整理/厨房台面), option(整理/冷藏), option(整理/冷冻), option(微波炉), option(灶台)):hw_kitchen]`
+**🔪 厨房清洁：**`INPUT[inlineListSuggester(option(厨房水池), option(整理/厨房台面), option(整理/冷藏), option(整理/冷冻), option(微波炉), option(灶台), option(整理/干货)):hw_kitchen]`
 
 **:DoFullTrash:替换：**`INPUT[inlineListSuggester(option(替换/猫砂盆liner), option(替换/空调滤网), option(替换/空气净化器filter)):hw_renew]`
 
