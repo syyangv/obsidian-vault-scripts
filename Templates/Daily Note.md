@@ -128,7 +128,7 @@ path regex does not match /Archive\/.*pantry/i
 
 **👚 衣物：**`INPUT[inlineListSuggester(option(洗衣服), option(整理/叠衣服/上衣), option(整理/叠衣服/下装), option(整理/叠衣服/毛巾床品), option(整理/卖Mercari)):hw_laundry]`
 
-**🚿 浴室清洁：**`INPUT[inlineListSuggester(option(刷马桶), option(洗手台), option(浴室地面), option(替换/牙刷刷头)):hw_bathroom]`
+**🚿 浴室清洁：**`INPUT[inlineListSuggester(option(刷马桶), option(洗手台), option(浴室地面), option(浴室玻璃), option(替换/牙刷刷头)):hw_bathroom]`
 
 **🔪 厨房清洁：**`INPUT[inlineListSuggester(option(厨房水池), option(整理/厨房台面), option(整理/冷藏), option(整理/冷冻), option(微波炉), option(灶台), option(整理/干货)):hw_kitchen]`
 
